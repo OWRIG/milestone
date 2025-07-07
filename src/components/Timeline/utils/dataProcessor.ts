@@ -134,18 +134,59 @@ export class TimelineDataManager {
     console.log('表头:', headers);
     console.log('数据行数:', dataRows.length);
 
+    // 详细检查表头结构
+    console.log('表头详细信息:');
+    headers.forEach((header: any, index: number) => {
+      console.log(`  [${index}]:`, {
+        完整对象: header,
+        value属性: header.value,
+        text属性: header.text,
+        其他属性: Object.keys(header)
+      });
+    });
+
+    console.log('当前配置的字段ID:', {
+      dateField: this.config.dateField,
+      titleField: this.config.titleField,
+      descField: this.config.descField,
+      statusField: this.config.statusField
+    });
+
     // 找到字段在表头中的索引
     const dateFieldIndex = headers.findIndex((h: any) => h.value === this.config.dateField);
     const titleFieldIndex = headers.findIndex((h: any) => h.value === this.config.titleField);
     const descFieldIndex = this.config.descField ? headers.findIndex((h: any) => h.value === this.config.descField) : -1;
     const statusFieldIndex = this.config.statusField ? headers.findIndex((h: any) => h.value === this.config.statusField) : -1;
 
-    console.log('字段索引:', {
+    console.log('字段索引查找结果:', {
       dateFieldIndex,
       titleFieldIndex,
       descFieldIndex,
       statusFieldIndex
     });
+
+    // 如果找不到字段，尝试其他可能的匹配方式
+    if (dateFieldIndex === -1 || titleFieldIndex === -1) {
+      console.log('尝试其他字段匹配方式...');
+      
+      // 尝试通过 fieldId 属性匹配
+      const dateFieldIndex2 = headers.findIndex((h: any) => h.fieldId === this.config.dateField);
+      const titleFieldIndex2 = headers.findIndex((h: any) => h.fieldId === this.config.titleField);
+      
+      console.log('通过 fieldId 匹配结果:', {
+        dateFieldIndex2,
+        titleFieldIndex2
+      });
+      
+      // 尝试通过 id 属性匹配
+      const dateFieldIndex3 = headers.findIndex((h: any) => h.id === this.config.dateField);
+      const titleFieldIndex3 = headers.findIndex((h: any) => h.id === this.config.titleField);
+      
+      console.log('通过 id 匹配结果:', {
+        dateFieldIndex3,
+        titleFieldIndex3
+      });
+    }
 
     for (let i = 0; i < dataRows.length; i++) {
       const row = dataRows[i];
