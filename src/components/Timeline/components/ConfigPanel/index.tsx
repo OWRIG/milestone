@@ -93,7 +93,9 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
   }, [config.tableId]);
 
   const handleConfigChange = (key: keyof STimelineConfig, value: any) => {
-    onConfigChange({ ...config, [key]: value });
+    console.log('Config change:', key, value); // 调试信息
+    const newConfig = { ...config, [key]: value };
+    onConfigChange(newConfig);
   };
 
   const handleTimeRangeChange = (key: string, value: any) => {
@@ -302,14 +304,6 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
       <div className="config-section">
         <h4>{t('config.style')}</h4>
         <div className="config-item">
-          <label>{t('style.node.color')}</label>
-          <ColorPicker
-            value={config.nodeColor}
-            onChange={(value) => handleConfigChange('nodeColor', value)}
-          />
-        </div>
-        
-        <div className="config-item">
           <label>{t('style.line.color')}</label>
           <ColorPicker
             value={config.lineColor}
@@ -318,11 +312,9 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
         </div>
         
         <div className="config-item">
-          <label>{t('style.completed.color')}</label>
-          <ColorPicker
-            value={config.completedColor}
-            onChange={(value) => handleConfigChange('completedColor', value)}
-          />
+          <label style={{ color: 'var(--semi-color-text-2)', fontSize: '12px' }}>
+            节点状态颜色：绿色(完成) | 黄色(进行中) | 红色(未开始)
+          </label>
         </div>
       </div>
       
@@ -330,22 +322,10 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
       <div className="config-section">
         <h4>{t('config.layout')}</h4>
         <div className="config-item">
-          <label>{t('layout.curve.tension')}: {config.curveTension.toFixed(1)}</label>
-          <Slider
-            min={0.1}
-            max={1}
-            step={0.1}
-            value={config.curveTension}
-            onChange={(value) => handleConfigChange('curveTension', value)}
-            style={{ width: '100%' }}
-          />
-        </div>
-        
-        <div className="config-item">
           <label>{t('layout.node.size')}: {config.nodeSize}px</label>
           <Slider
             min={8}
-            max={32}
+            max={24}
             step={2}
             value={config.nodeSize}
             onChange={(value) => handleConfigChange('nodeSize', value)}
@@ -356,9 +336,9 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
         <div className="config-item">
           <label>{t('layout.min.spacing')}: {config.minNodeSpacing}px</label>
           <Slider
-            min={20}
-            max={80}
-            step={5}
+            min={150}
+            max={350}
+            step={10}
             value={config.minNodeSpacing}
             onChange={(value) => handleConfigChange('minNodeSpacing', value)}
             style={{ width: '100%' }}
@@ -373,12 +353,10 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
           />
         </div>
         
-        <div className="config-item switch-item">
-          <label>{t('layout.adaptive')}</label>
-          <Switch
-            checked={config.adaptiveLayout}
-            onChange={(value) => handleConfigChange('adaptiveLayout', value)}
-          />
+        <div className="config-item">
+          <label style={{ color: 'var(--semi-color-text-2)', fontSize: '12px' }}>
+            布局自动适应容器大小，自动换行形成 S 型
+          </label>
         </div>
       </div>
 

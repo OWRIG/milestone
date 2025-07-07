@@ -2,60 +2,26 @@
   width: 100%;
   height: 100%;
   position: relative;
-  overflow: auto; // 支持横向和纵向滚动
   background-color: var(--semi-color-bg-0);
-  
-  // 新的分离布局
-  .milestone-cards-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    pointer-events: none; // 默认不阻挡SVG交互
-    
-    .milestone-card {
-      pointer-events: auto; // 但允许卡片交互
-      
-      // 改善卡片样式
-      &:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 6px 20px rgba(0,0,0,0.2) !important;
-      }
-    }
-  }
   
   .s-timeline-svg {
     width: 100%;
     height: 100%;
     display: block;
-    min-height: 300px; // 最小高度
     
     .s-timeline-path {
-      animation: drawPath 2s ease-in-out;
-      stroke-width: 3;
       opacity: 0.8;
-      // 确保路径平滑
-      vector-effect: non-scaling-stroke;
     }
     
-    // SVG 节点样式
-    .milestone-circle-group {
-      .milestone-date {
-        font-family: var(--semi-font-family);
-        user-select: none;
-        pointer-events: none;
-        transition: all 0.2s ease;
-      }
-      
+    .milestone-group {
       .milestone-circle {
-        transition: filter 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        
-        &:hover {
-          filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
-        }
+        // 移除悬停效果，避免抖动
       }
       
-      .milestone-center {
-        pointer-events: none;
+      .milestone-date,
+      .milestone-title,
+      .milestone-description {
+        font-family: var(--semi-font-family);
         user-select: none;
       }
     }
@@ -74,11 +40,6 @@
       text-align: center;
       color: var(--semi-color-text-2);
       
-      svg {
-        margin-bottom: 16px;
-        color: var(--semi-color-text-3);
-      }
-      
       h3 {
         margin: 0 0 8px 0;
         font-size: 18px;
@@ -94,147 +55,26 @@
     }
   }
   
-  // 工具提示层
-  .tooltip-layer {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 10;
-  }
-  
-  // 动画定义
-  @keyframes drawPath {
-    0% {
-      stroke-dasharray: 1000;
-      stroke-dashoffset: 1000;
-    }
-    100% {
-      stroke-dasharray: 1000;
-      stroke-dashoffset: 0;
-    }
-  }
-  
-  @keyframes fadeIn {
-    0% {
-      opacity: 0;
-      transform: translateY(4px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  
-  // 横排布局特定样式
-  .horizontal-layout {
-    .milestone-node {
-      // 确保信息卡片不重叠
-      .info-card {
-        // 根据节点密度调整卡片大小
-        &.compact {
-          width: 120px;
-          height: 25px;
-          
-          + .milestone-title {
-            font-size: 11px;
-          }
-        }
-      }
-    }
-  }
-  
-  // 响应式设计
-  @media (max-width: 768px) {
-    .milestone-node {
-      .milestone-date {
-        font-size: 12px;
-      }
-      
-      .milestone-title {
-        font-size: 11px;
-      }
-      
-      .milestone-description {
-        font-size: 10px;
-      }
-      
-      .milestone-tooltip {
-        .tooltip-bg {
-          width: 200px;
-          height: 25px;
-        }
-        
-        text {
-          font-size: 11px;
-        }
-      }
-      
-      .info-card {
-        width: 140px;
-        height: 40px;
-      }
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .milestone-node {
-      .info-card {
-        width: 120px;
-        height: 35px;
-      }
-      
-      .milestone-title {
-        font-size: 10px;
-      }
-      
-      .milestone-description {
-        display: none; // 在小屏幕上隐藏描述
-      }
-    }
-  }
-  
   // 暗色主题适配
   [theme-mode="dark"] & {
     background-color: var(--semi-color-bg-0);
     
-    .milestone-node {
-      .info-card {
-        fill: var(--semi-color-bg-1);
-        stroke-opacity: 0.8;
-      }
-      
-      .milestone-title {
+    .milestone-group {
+      .milestone-date {
         fill: var(--semi-color-text-0);
       }
       
-      .milestone-date {
+      .milestone-title {
         fill: var(--semi-color-text-0);
       }
       
       .milestone-description {
         fill: var(--semi-color-text-2);
       }
-      
-      .milestone-tooltip {
-        .tooltip-bg {
-          fill: rgba(20, 20, 20, 0.9);
-        }
-        
-        text {
-          fill: var(--semi-color-text-0);
-        }
-      }
     }
     
     .empty-state {
       .empty-content {
-        svg {
-          color: var(--semi-color-text-3);
-        }
-        
         h3 {
           color: var(--semi-color-text-0);
         }
@@ -245,49 +85,4 @@
       }
     }
   }
-  
-  // 打印样式
-  @media print {
-    .milestone-node {
-      .milestone-tooltip {
-        display: none;
-      }
-    }
-    
-    .s-timeline-path {
-      animation: none;
-    }
-  }
-}
-
-// 全局SVG样式优化
-.s-timeline-svg {
-  // 提升渲染性能
-  transform-origin: center;
-  will-change: auto; // 减少GPU使用
-  
-  // 确保文本清晰度
-  text {
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-  
-  // 确保路径平滑
-  path {
-    vector-effect: non-scaling-stroke;
-  }
-  
-  // 禁用用户选择和拖拽
-  * {
-    user-select: none;
-    -webkit-user-drag: none;
-  }
-}
-
-// 状态颜色变量定义
-:root {
-  --timeline-status-completed: #4CAF50;  // 绿色 - 完成
-  --timeline-status-in-progress: #FFC107; // 黄色 - 进行中
-  --timeline-status-pending: #F44336;    // 红色 - 未开始
 }

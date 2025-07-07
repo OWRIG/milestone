@@ -1,8 +1,5 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
 import { MilestoneData, STimelineConfig, ContainerSize } from '../../types';
-import { STimelineAlgorithm } from '../../utils/sAlgorithm';
-import MilestoneCircle from './MilestoneCircle';
-import MilestoneCard from './MilestoneCard';
 import './style.scss';
 
 interface TimelineRendererProps {
@@ -10,88 +7,107 @@ interface TimelineRendererProps {
   config: STimelineConfig;
   containerSize: ContainerSize;
   onMilestoneClick?: (milestone: MilestoneData) => void;
-  className?: string;
 }
 
 const TimelineRenderer: React.FC<TimelineRendererProps> = ({
   milestones,
   config,
   containerSize,
-  onMilestoneClick,
-  className = ''
+  onMilestoneClick
 }) => {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const [pathData, setPathData] = useState<string>('');
-  const [processedMilestones, setProcessedMilestones] = useState<MilestoneData[]>([]);
-  
-  // 创建算法实例
-  const algorithm = useRef(new STimelineAlgorithm(containerSize));
-  
-  // 更新算法容器尺寸
-  useEffect(() => {
-    algorithm.current.updateContainerSize(containerSize);
-  }, [containerSize]);
-  
-  // 计算横排S型路径和节点位置
-  useEffect(() => {
-    if (milestones.length === 0) {
-      setPathData('');
-      setProcessedMilestones([]);
-      return;
-    }
+  // S 型横向布局计算
+  const processedMilestones = useMemo(() => {
+    if (milestones.length === 0) return [];
+
+    const padding = 80; // 增加四周边距
+    const availableWidth = containerSize.width - (padding * 2);
+    const nodeSpacing = config.minNodeSpacing || 200;
+    const rowHeight = 160; // 增加行高，为描述文字留出更多空间
+    const nodesPerRow = Math.max(1, Math.floor(availableWidth / nodeSpacing));
     
-    try {
-      // 更新算法配置
-      const minSpacing = config.minNodeSpacing || 120;
-      algorithm.current.setMinNodeSpacing(minSpacing);
-      algorithm.current.setMaxNodeSpacing(200);
-      algorithm.current.setRowHeight(140);
-      algorithm.current.setMaxNodesPerRow(6);
+    return milestones.map((milestone, index) => {
+      const rowIndex = Math.floor(index / nodesPerRow);
+      const colIndex = index % nodesPerRow;
       
-      // 计算横排S型路径
-      const calculatedMilestones = algorithm.current.calculateSPath(milestones, minSpacing);
-      setProcessedMilestones(calculatedMilestones);
+      // S 型布局：奇数行从右到左，偶数行从左到右
+      const isOddRow = rowIndex % 2 === 1;
+      const actualColIndex = isOddRow ? (nodesPerRow - 1 - colIndex) : colIndex;
       
-      // 生成SVG路径
-      const path = algorithm.current.generateSVGPath(calculatedMilestones);
-      setPathData(path);
-    } catch (error) {
-      console.error('计算横排S型路径失败:', error);
-      setPathData('');
-      setProcessedMilestones([]);
+      const x = padding + (actualColIndex * nodeSpacing);
+      const y = 120 + (rowIndex * rowHeight); // 从上方留出更多空间
+      
+      return {
+        ...milestone,
+        x,
+        y
+      };
+    });
+  }, [milestones, containerSize, config.minNodeSpacing]);
+
+  // 生成简单的 S 型连接线路径
+  const linePath = useMemo(() => {
+    if (processedMilestones.length < 2) return '';
+
+    const pathParts: string[] = [];
+    const padding = 80;
+    const availableWidth = containerSize.width - (padding * 2);
+    const nodeSpacing = config.minNodeSpacing || 200;
+    const nodesPerRow = Math.max(1, Math.floor(availableWidth / nodeSpacing));
+    
+    processedMilestones.forEach((milestone, index) => {
+      if (index === 0) {
+        pathParts.push(`M ${milestone.x} ${milestone.y}`);
+      } else {
+        const prevMilestone = processedMilestones[index - 1];
+        
+        // 如果是同一行，直接连接
+        if (Math.abs(milestone.y - prevMilestone.y) < 10) {
+          pathParts.push(`L ${milestone.x} ${milestone.y}`);
+        } else {
+          // 换行时使用真正的半圆弧，形成 S 型
+          const prevRowIndex = Math.floor((index - 1) / nodesPerRow);
+          const currentRowIndex = Math.floor(index / nodesPerRow);
+          
+          const deltaY = Math.abs(milestone.y - prevMilestone.y);
+          const radius = deltaY / 2;
+          
+          // 根据行数确定弧的方向，形成真正的 S 型
+          // 偶数行到奇数行：向右弯曲 (sweepFlag = 1)
+          // 奇数行到偶数行：向左弯曲 (sweepFlag = 0)
+          const sweepFlag = (prevRowIndex % 2 === 0) ? 1 : 0;
+          const largeArcFlag = 0; // 小弧
+          
+          pathParts.push(
+            `A ${radius} ${radius} 0 ${largeArcFlag} ${sweepFlag} ${milestone.x} ${milestone.y}`
+          );
+        }
+      }
+    });
+
+    return pathParts.join(' ');
+  }, [processedMilestones, containerSize.width, config.minNodeSpacing]);
+
+  // 获取状态颜色
+  const getStatusColor = (milestone: MilestoneData) => {
+    if (milestone.completed || milestone.status === 'completed') {
+      return '#4CAF50'; // 绿色 - 完成
+    } else if (milestone.status === 'in-progress') {
+      return '#FFC107'; // 黄色 - 进行中  
+    } else {
+      return '#F44336'; // 红色 - 未开始
     }
-  }, [milestones, config.minNodeSpacing, containerSize]);
-  
-  // 处理里程碑点击事件
+  };
+
+  // 处理点击事件
   const handleMilestoneClick = (milestone: MilestoneData) => {
     onMilestoneClick?.(milestone);
   };
-  
-  // 计算动态高度
-  const dynamicHeight = processedMilestones.length > 0 
-    ? Math.max(containerSize.height, algorithm.current.calculateRequiredHeight(processedMilestones.length))
-    : containerSize.height;
 
-  // 如果没有数据，显示空状态
   if (milestones.length === 0) {
     return (
-      <div className={`s-timeline-renderer ${className}`}>
+      <div className="s-timeline-renderer">
         <div className="empty-state">
           <div className="empty-content">
-            <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-              <path 
-                d="M32 8C18.745 8 8 18.745 8 32s10.745 24 24 24 24-10.745 24-24S45.255 8 32 8zm0 44c-11.046 0-20-8.954-20-20s8.954-20 20-20 20 8.954 20 20-8.954 20-20 20z" 
-                fill="currentColor" 
-                opacity="0.3"
-              />
-              <path 
-                d="M32 18v8M32 38v8M22 32h8M42 32h8" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round"
-                opacity="0.5"
-              />
-            </svg>
             <h3>暂无数据</h3>
             <p>请配置数据源和字段映射</p>
           </div>
@@ -100,83 +116,104 @@ const TimelineRenderer: React.FC<TimelineRendererProps> = ({
     );
   }
 
+  // 计算实际需要的高度
+  const requiredHeight = useMemo(() => {
+    if (processedMilestones.length === 0) return containerSize.height;
+    
+    const maxY = Math.max(...processedMilestones.map(m => m.y));
+    return Math.max(containerSize.height, maxY + 200); // 底部留出更多空间给描述文字
+  }, [processedMilestones, containerSize.height]);
+
   return (
-    <div className={`s-timeline-renderer ${className}`}>
-      {/* SVG 容器：负责连接线和节点圆圈 */}
+    <div className="s-timeline-renderer">
       <svg
-        ref={svgRef}
         width={containerSize.width}
-        height={dynamicHeight}
-        viewBox={`0 0 ${containerSize.width} ${dynamicHeight}`}
+        height={requiredHeight}
+        viewBox={`0 0 ${containerSize.width} ${requiredHeight}`}
         className="s-timeline-svg"
       >
-        {/* 定义渐变和滤镜 */}
-        <defs>
-          <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor={config.lineColor} stopOpacity="0.3" />
-            <stop offset="50%" stopColor={config.lineColor} stopOpacity="0.8" />
-            <stop offset="100%" stopColor={config.completedColor} stopOpacity="1" />
-          </linearGradient>
-          
-          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-            <feMerge> 
-              <feMergeNode in="coloredBlur"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-          
-          <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-            <feDropShadow dx="2" dy="2" stdDeviation="2" floodColor="rgba(0,0,0,0.2)"/>
-          </filter>
-        </defs>
-        
-        {/* S型连接线 */}
-        {pathData && (
+        {/* 连接线 */}
+        {linePath && (
           <path
-            d={pathData}
+            d={linePath}
             fill="none"
-            stroke="url(#lineGradient)"
+            stroke={config.lineColor}
             strokeWidth="3"
             strokeLinecap="round"
             strokeLinejoin="round"
-            filter="url(#shadow)"
             className="s-timeline-path"
           />
         )}
-        
-        {/* 里程碑圆圈节点 */}
-        {processedMilestones.map((milestone, index) => (
-          <MilestoneCircle
-            key={milestone.id || index}
-            milestone={milestone}
-            config={config}
-            onClick={handleMilestoneClick}
-            index={index}
-          />
-        ))}
+
+        {/* 里程碑节点 */}
+        {processedMilestones.map((milestone, index) => {
+          const statusColor = getStatusColor(milestone);
+          
+          return (
+            <g key={milestone.id} className="milestone-group">
+              {/* 节点圆圈 */}
+              <circle
+                cx={milestone.x}
+                cy={milestone.y}
+                r={config.nodeSize}
+                fill={statusColor}
+                stroke="white"
+                strokeWidth="3"
+                className="milestone-circle"
+                style={{ cursor: 'pointer' }}
+                onClick={() => handleMilestoneClick(milestone)}
+              />
+              
+              {/* 日期标签 */}
+              <text
+                x={milestone.x}
+                y={milestone.y - config.nodeSize - 10}
+                textAnchor="middle"
+                fontSize="12"
+                fill="var(--semi-color-text-1)"
+                className="milestone-date"
+              >
+                {milestone.date.toLocaleDateString('zh-CN', { 
+                  month: 'short', 
+                  day: 'numeric' 
+                })}
+              </text>
+              
+              {/* 标题 */}
+              <text
+                x={milestone.x}
+                y={milestone.y + config.nodeSize + 20}
+                textAnchor="middle"
+                fontSize="14"
+                fontWeight="500"
+                fill="var(--semi-color-text-0)"
+                className="milestone-title"
+                style={{ cursor: 'pointer' }}
+                onClick={() => handleMilestoneClick(milestone)}
+              >
+                {milestone.title}
+              </text>
+              
+              {/* 描述 */}
+              {config.showDescription && milestone.description && (
+                <text
+                  x={milestone.x}
+                  y={milestone.y + config.nodeSize + 55}
+                  textAnchor="middle"
+                  fontSize="10"
+                  fill="var(--semi-color-text-2)"
+                  className="milestone-description"
+                  style={{ maxWidth: '120px' }}
+                >
+                  {milestone.description.length > 20 
+                    ? milestone.description.substring(0, 20) + '...' 
+                    : milestone.description}
+                </text>
+              )}
+            </g>
+          );
+        })}
       </svg>
-      
-      {/* HTML 容器：负责信息卡片 */}
-      <div 
-        className="milestone-cards-container"
-        style={{
-          position: 'relative',
-          width: '100%',
-          height: dynamicHeight,
-          pointerEvents: 'auto', // 允许卡片交互
-        }}
-      >
-        {processedMilestones.map((milestone, index) => (
-          <MilestoneCard
-            key={`card-${milestone.id || index}`}
-            milestone={milestone}
-            config={config}
-            onClick={handleMilestoneClick}
-            index={index}
-          />
-        ))}
-      </div>
     </div>
   );
 };

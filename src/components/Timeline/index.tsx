@@ -1,308 +1,230 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { bitable, dashboard } from '@lark-base-open/js-sdk';
-import { DashboardState, DashboardMode, STimelineConfig, STimelineProps } from './types';
-import { STimelineAlgorithm } from './utils/sAlgorithm';
-import { TimelineDataManager } from './utils/dataProcessor';
-import ConfigPanel from './components/ConfigPanel';
+import React, { useState } from 'react';
 import TimelineRenderer from './components/Renderer';
+import ConfigPanel from './components/ConfigPanel';
+import { STimelineConfig, MilestoneData, DashboardMode } from './types';
 import './style.scss';
 
-// S型时间线仪表盘主组件
-const TimelineDashboard: React.FC<STimelineProps> = ({ 
-  containerSize, 
-  onConfigChange,
-  onSave 
+// 真实业务里程碑数据
+const getMockData = (): MilestoneData[] => {
+  return [
+    {
+      id: '1',
+      date: new Date(2025, 0, 31),
+      title: '全栈开发能力建设完成',
+      description: '实现框架全栈支持和多变体业务分发，打通前后端开发壁垒',
+      status: 'completed',
+      completed: true,
+      x: 0, y: 0
+    },
+    {
+      id: '2',
+      date: new Date(2025, 1, 28),
+      title: '前端部署架构优化完成',
+      description: '实现前端网关和应用分发优化，支持大客户定制和私有化部署',
+      status: 'completed',
+      completed: true,
+      x: 0, y: 0
+    },
+    {
+      id: '3',
+      date: new Date(2025, 2, 31),
+      title: 'AI能力集成里程碑',
+      description: '框架集成图片理解和数据分析AI能力，支持非结构化数据处理',
+      status: 'in-progress',
+      completed: false,
+      x: 0, y: 0
+    },
+    {
+      id: '4',
+      date: new Date(2025, 3, 30),
+      title: '前端监控体系建设完成',
+      description: '建立完整的前端应用监控和错误边界机制，实现客户问题快速定位和处理',
+      status: 'pending',
+      completed: false,
+      x: 0, y: 0
+    },
+    {
+      id: '5',
+      date: new Date(2025, 4, 31),
+      title: '后端服务稳定性全面提升',
+      description: '完成框架后端稳定性升级改造，解决服务重启和报错问题',
+      status: 'pending',
+      completed: false,
+      x: 0, y: 0
+    },
+    {
+      id: '6',
+      date: new Date(2025, 5, 30),
+      title: '微服务架构升级完成',
+      description: '完成限流熔断组件和Redis集群模式实现',
+      status: 'pending',
+      completed: false,
+      x: 0, y: 0
+    },
+    {
+      id: '7',
+      date: new Date(2025, 6, 31),
+      title: '移动端开发效率提升',
+      description: '完成APP热更新和H5开发能力建设',
+      status: 'pending',
+      completed: false,
+      x: 0, y: 0
+    },
+    {
+      id: '8',
+      date: new Date(2025, 7, 31),
+      title: '统一数据服务平台建设',
+      description: '完成统一指标服务和数据采集能力建设',
+      status: 'pending',
+      completed: false,
+      x: 0, y: 0
+    },
+    {
+      id: '9',
+      date: new Date(2025, 8, 30),
+      title: '框架知识产权保护',
+      description: '完成数据服务平台专利申请，建立技术护城河',
+      status: 'pending',
+      completed: false,
+      x: 0, y: 0
+    },
+    {
+      id: '10',
+      date: new Date(2025, 9, 31),
+      title: '开发工具链现代化',
+      description: '完成AI编程工具推广和前端构建工具升级',
+      status: 'pending',
+      completed: false,
+      x: 0, y: 0
+    },
+    {
+      id: '11',
+      date: new Date(2025, 10, 30),
+      title: '监控运维体系完善',
+      description: '建立完整的服务监控和性能监控体系',
+      status: 'pending',
+      completed: false,
+      x: 0, y: 0
+    },
+    {
+      id: '12',
+      date: new Date(2025, 11, 31),
+      title: '充电桩生态扩展',
+      description: '开放平台支持充电桩厂商接入，扩展新能源生态',
+      status: 'pending',
+      completed: false,
+      x: 0, y: 0
+    },
+    {
+      id: '13',
+      date: new Date(2026, 2, 31),
+      title: '数据链路可视化平台建设',
+      description: '完成完整链路数据可视化平台建设',
+      status: 'pending',
+      completed: false,
+      x: 0, y: 0
+    },
+    {
+      id: '14',
+      date: new Date(2026, 5, 30),
+      title: '云原生架构全面升级',
+      description: '建立基于容器化和微服务的云原生技术体系，实现弹性扩缩和快速部署',
+      status: 'pending',
+      completed: false,
+      x: 0, y: 0
+    },
+    {
+      id: '15',
+      date: new Date(2026, 8, 30),
+      title: '数字孪生技术平台建设',
+      description: '构建新能源设备数字孪生平台，实现设备状态实时监控和预测性维护',
+      status: 'pending',
+      completed: false,
+      x: 0, y: 0
+    },
+    {
+      id: '16',
+      date: new Date(2026, 11, 31),
+      title: '技术栈现代化升级',
+      description: '完成React19、Node22等核心技术栈升级和3D可视化能力建设',
+      status: 'pending',
+      completed: false,
+      x: 0, y: 0
+    }
+  ];
+};
+
+// 简化的默认配置 - 只保留必要的配置项
+const getDefaultConfig = (): STimelineConfig => ({
+  tableId: '',
+  dateField: '',
+  titleField: '',
+  descField: '',
+  statusField: '',
+  timeRange: {
+    startDate: new Date(2025, 0, 1),  // 2025年1月1日
+    endDate: new Date(2026, 11, 31),  // 2026年12月31日
+    autoRange: 'custom'
+  },
+  nodeColor: '#1890ff',
+  lineColor: '#d9d9d9',
+  completedColor: '#52c41a',
+  curveTension: 0.5,
+  nodeSize: 12,
+  showDescription: true,
+  adaptiveLayout: true,
+  minNodeSpacing: 200  // 增加默认节点间距
+});
+
+interface TimelineDashboardProps {
+  containerSize?: { width: number; height: number };
+  mode?: DashboardMode;
+}
+
+const TimelineDashboard: React.FC<TimelineDashboardProps> = ({ 
+  containerSize = { width: 1200, height: 600 },
+  mode = DashboardMode.Config
 }) => {
-  const [state, setState] = useState<DashboardState>({
-    mode: DashboardMode.Create,
-    config: getDefaultConfig(),
-    data: [],
-    loading: false,
-    error: null
-  });
-  
-  const algorithmRef = useRef<STimelineAlgorithm>(new STimelineAlgorithm(containerSize));
-  const dataManagerRef = useRef<TimelineDataManager>(new TimelineDataManager(state.config, state.mode));
-  const eventListenersRef = useRef<{[key: string]: () => void}>({});
-  
-  // 获取默认配置
-  function getDefaultConfig(): STimelineConfig {
-    const currentYear = new Date().getFullYear();
-    return {
-      tableId: '',
-      dateField: '',
-      titleField: '',
-      descField: '',
-      statusField: '',
-      timeRange: {
-        startDate: new Date(currentYear, 0, 1),
-        endDate: new Date(currentYear, 11, 31),
-        autoRange: 'year'
-      },
-      nodeColor: '#1890ff',
-      lineColor: '#d9d9d9',
-      completedColor: '#52c41a',
-      curveTension: 0.5,
-      nodeSize: 16,
-      showDescription: true,
-      adaptiveLayout: true,
-      minNodeSpacing: 40
-    };
-  }
-  
-  // 检测运行模式
-  const detectMode = useCallback(async (): Promise<DashboardMode> => {
-    try {
-      await bitable.bridge.getEnv();
-      const urlParams = new URLSearchParams(window.location.search);
-      const mode = urlParams.get('mode');
-      
-      switch (mode) {
-        case 'config': return DashboardMode.Config;
-        case 'view': return DashboardMode.View;
-        case 'fullscreen': return DashboardMode.FullScreen;
-        default: return DashboardMode.Create;
-      }
-    } catch (error) {
-      console.warn('检测模式失败，使用默认模式');
-      return DashboardMode.Create;
-    }
-  }, []);
-  
-  // 加载已保存的配置和数据
-  const loadSavedConfigAndData = useCallback(async () => {
-    try {
-      setState(prev => ({ ...prev, loading: true, error: null }));
-      
-      // 尝试加载已保存的配置
-      const savedConfig = await dashboard.getConfig();
-      if (savedConfig?.customConfig) {
-        const newConfig = { ...getDefaultConfig(), ...savedConfig.customConfig };
-        setState(prev => ({ ...prev, config: newConfig }));
-        dataManagerRef.current.updateConfig(newConfig);
-        onConfigChange?.(newConfig);
-      }
-      
-      // 使用DataManager加载数据
-      const data = await dataManagerRef.current.loadTimelineData();
-      const processedData = algorithmRef.current.calculateSPath(data, state.config.curveTension);
-      setState(prev => ({ ...prev, data: processedData }));
-    } catch (error) {
-      console.error('加载数据失败:', error);
-      setState(prev => ({ ...prev, error: '加载数据失败' }));
-      // 降级到模拟数据
-      await loadMockData();
-    } finally {
-      setState(prev => ({ ...prev, loading: false }));
-    }
-  }, [state.config.curveTension, state.mode, onConfigChange]);
-  
-  // 加载模拟数据
-  const loadMockData = useCallback(async () => {
-    const mockData = await dataManagerRef.current.loadTimelineData();
-    const processedData = algorithmRef.current.calculateSPath(mockData, state.config.curveTension);
-    setState(prev => ({ ...prev, data: processedData }));
-  }, [state.config.curveTension]);
-  
-  // 配置变更处理
-  const handleConfigChange = useCallback(async (newConfig: STimelineConfig) => {
-    setState(prev => ({ ...prev, config: newConfig }));
-    dataManagerRef.current.updateConfig(newConfig);
-    onConfigChange?.(newConfig);
-    
-    // 实时预览（仅在配置模式下）
-    if (state.mode === DashboardMode.Config) {
-      try {
-        setState(prev => ({ ...prev, loading: true }));
-        // 使用DataManager加载数据
-        const data = await dataManagerRef.current.loadTimelineData();
-        const processedData = algorithmRef.current.calculateSPath(data, newConfig.minNodeSpacing || 120);
-        setState(prev => ({ ...prev, data: processedData }));
-      } catch (error) {
-        console.error('预览数据失败:', error);
-      } finally {
-        setState(prev => ({ ...prev, loading: false }));
-      }
-    }
-  }, [state.mode, onConfigChange]);
-  
-  // 保存配置
-  const handleSave = useCallback(async (): Promise<boolean> => {
-    try {
-      const success = await dataManagerRef.current.saveDataDependency();
-      if (success && onSave) {
-        return await onSave();
-      }
-      return success;
-    } catch (error) {
-      console.error('保存配置失败:', error);
-      return false;
-    }
-  }, [onSave]);
-  
-  // 设置事件监听器
-  const setupEventListeners = useCallback(() => {
-    // 清理旧的监听器
-    Object.values(eventListenersRef.current).forEach(cleanup => cleanup());
-    eventListenersRef.current = {};
-    
-    // 监听数据变更
-    const onDataChangeCleanup = dashboard.onDataChange(async () => {
-      try {
-        // 使用DataManager处理数据
-        const timelineData = await dataManagerRef.current.loadTimelineData();
-        const processedData = algorithmRef.current.calculateSPath(timelineData, state.config.curveTension);
-        setState(prev => ({ ...prev, data: processedData }));
-      } catch (error) {
-        console.error('数据变更处理失败:', error);
-      }
-    });
-    
-    // 监听配置变更
-    const onConfigChangeCleanup = dashboard.onConfigChange(({ data: config }) => {
-      try {
-        if (config?.customConfig) {
-          const newConfig = { ...getDefaultConfig(), ...config.customConfig };
-          setState(prev => ({ ...prev, config: newConfig }));
-          dataManagerRef.current.updateConfig(newConfig);
-          onConfigChange?.(newConfig);
-        }
-      } catch (error) {
-        console.error('配置变更处理失败:', error);
-      }
-    });
-    
-    eventListenersRef.current = {
-      onDataChange: onDataChangeCleanup,
-      onConfigChange: onConfigChangeCleanup
-    };
-  }, [state.config.curveTension, onConfigChange]);
-  
-  // 初始化
-  useEffect(() => {
-    const initialize = async () => {
-      try {
-        const mode = await detectMode();
-        setState(prev => ({ ...prev, mode }));
-        dataManagerRef.current.updateMode(mode);
-        
-        // 设置事件监听器
-        setupEventListeners();
-        
-        if (mode === DashboardMode.View || mode === DashboardMode.FullScreen) {
-          await loadSavedConfigAndData();
-        } else if (mode === DashboardMode.Config) {
-          // 配置模式：尝试加载已保存的配置，但总是显示数据（包括模拟数据）
-          try {
-            const savedConfig = await dashboard.getConfig();
-            if (savedConfig?.customConfig) {
-              const newConfig = { ...getDefaultConfig(), ...savedConfig.customConfig };
-              setState(prev => ({ ...prev, config: newConfig }));
-              dataManagerRef.current.updateConfig(newConfig);
-              onConfigChange?.(newConfig);
-            }
-          } catch (error) {
-            console.warn('加载配置失败，使用默认配置:', error);
-          }
-          await loadMockData();
-        } else {
-          await loadMockData();
-        }
-      } catch (error) {
-        console.error('初始化失败:', error);
-        setState(prev => ({ ...prev, error: '初始化失败' }));
-        await loadMockData();
-      }
-    };
-    
-    initialize();
-    
-    // 清理函数
-    return () => {
-      Object.values(eventListenersRef.current).forEach(cleanup => cleanup());
-    };
-  }, [detectMode, loadSavedConfigAndData, loadMockData, setupEventListeners]);
-  
-  // 容器尺寸变化时更新算法
-  useEffect(() => {
-    algorithmRef.current.updateContainerSize(containerSize);
-    algorithmRef.current.setMinNodeSpacing(state.config.minNodeSpacing || 120);
-    algorithmRef.current.setRowHeight(140);
-    if (state.data.length > 0) {
-      const processedData = algorithmRef.current.calculateSPath(state.data, state.config.minNodeSpacing || 120);
-      setState(prev => ({ ...prev, data: processedData }));
-    }
-  }, [containerSize, state.config.minNodeSpacing, state.data]);
-  
-  // 渲染完成通知
-  useEffect(() => {
-    if (state.data.length > 0 && !state.loading) {
-      dashboard.setRendered();
-    }
-  }, [state.data, state.loading]);
-  
-  // 渲染错误状态
-  if (state.error) {
-    return (
-      <div className="s-timeline-error">
-        <div className="error-content">
-          <h3>加载失败</h3>
-          <p>{state.error}</p>
-          <button onClick={() => window.location.reload()}>重新加载</button>
-        </div>
-      </div>
-    );
-  }
-  
-  // 根据模式渲柔不同的布局
-  const isCreateOrConfigMode = state.mode === DashboardMode.Create || state.mode === DashboardMode.Config;
-  
+  const [config, setConfig] = useState<STimelineConfig>(getDefaultConfig());
+  const [milestones] = useState<MilestoneData[]>(getMockData());
+
+  const handleConfigChange = (newConfig: STimelineConfig) => {
+    setConfig(newConfig);
+  };
+
+  const isConfigMode = mode === DashboardMode.Config || mode === DashboardMode.Create;
+
   return (
-    <div className={`s-timeline-dashboard mode-${state.mode}`}>
-      {isCreateOrConfigMode ? (
-        // 创建/配置模式：左右布局，显示配置面板
+    <div className={`s-timeline-dashboard mode-${mode}`}>
+      {isConfigMode ? (
+        // 配置模式：左侧预览，右侧配置
         <div className="config-layout">
-          <div className="config-panel-wrapper">
-            <ConfigPanel 
-              config={state.config}
-              onConfigChange={handleConfigChange}
-              loading={state.loading}
-            />
-            <div className="config-actions">
-              <button 
-                className="save-button"
-                onClick={handleSave}
-                disabled={state.loading || !state.config.tableId}
-              >
-                {state.loading ? '保存中...' : '保存配置'}
-              </button>
-            </div>
-          </div>
           <div className="timeline-preview">
             <TimelineRenderer 
-              milestones={state.data}
-              config={state.config}
+              milestones={milestones}
+              config={config}
               containerSize={{
-                width: containerSize.width - 340, // 减去配置面板宽度
+                width: containerSize.width - 350,
                 height: containerSize.height
               }}
             />
           </div>
+          <div className="config-panel-wrapper">
+            <ConfigPanel 
+              config={config}
+              onConfigChange={handleConfigChange}
+              loading={false}
+            />
+          </div>
         </div>
       ) : (
-        // 查看/全屏模式：全屏显示，隐藏配置面板
+        // 查看模式：全屏显示
         <div className="view-layout">
           <TimelineRenderer 
-            milestones={state.data}
-            config={state.config}
+            milestones={milestones}
+            config={config}
             containerSize={containerSize}
           />
-        </div>
-      )}
-      
-      {state.loading && (
-        <div className="loading-overlay">
-          <div className="loading-spinner">加载中...</div>
         </div>
       )}
     </div>

@@ -3,7 +3,7 @@ import './App.scss';
 import './locales/i18n';
 import { useState, useEffect } from 'react';
 import TimelineDashboard from './components/Timeline';
-import { ContainerSize } from './components/Timeline/types';
+import { ContainerSize, DashboardMode } from './components/Timeline/types';
 
 export default function App() {
   const [containerSize, setContainerSize] = useState<ContainerSize>({
@@ -54,18 +54,7 @@ export default function App() {
     <div className="timeline-app">
       <TimelineDashboard 
         containerSize={containerSize}
-        onConfigChange={(config) => {
-          console.log('配置已更新:', config);
-        }}
-        onSave={async () => {
-          try {
-            console.log('保存配置...');
-            return true;
-          } catch (error) {
-            console.error('保存失败:', error);
-            return false;
-          }
-        }}
+        mode={DashboardMode.Config}
       />
     </div>
   );

@@ -3,6 +3,8 @@
   height: 100%;
   overflow-y: auto;
   background-color: var(--semi-color-bg-1);
+  pointer-events: auto;
+  position: relative;
   
   .config-section {
     margin-bottom: 24px;
@@ -64,6 +66,7 @@
       border-radius: 6px;
       border-color: var(--semi-color-border);
       transition: all 0.2s;
+      color: var(--semi-color-text-0) !important;
       
       &:hover {
         border-color: var(--semi-color-primary-hover);
@@ -74,20 +77,53 @@
         border-color: var(--semi-color-primary);
         box-shadow: 0 0 0 2px rgba(var(--semi-color-primary-rgb), 0.1);
       }
+      
+      // 修复选中文本颜色
+      &::selection {
+        background-color: var(--semi-color-primary);
+        color: white !important;
+      }
+      
+      &::-moz-selection {
+        background-color: var(--semi-color-primary);
+        color: white !important;
+      }
+    }
+    
+    // 修复下拉框选项文本颜色
+    .semi-select-option {
+      color: var(--semi-color-text-0) !important;
+      
+      &.semi-select-option-selected {
+        color: var(--semi-color-primary) !important;
+        background-color: var(--semi-color-primary-light-default) !important;
+      }
     }
   }
   
   .semi-slider {
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 1;
+    
     .semi-slider-rail {
       background-color: var(--semi-color-fill-1);
+      pointer-events: auto;
     }
     
     .semi-slider-track {
       background-color: var(--semi-color-primary);
+      pointer-events: auto;
     }
     
     .semi-slider-handle {
       border-color: var(--semi-color-primary);
+      pointer-events: auto;
+      cursor: grab;
+      
+      &:active {
+        cursor: grabbing;
+      }
       
       &:hover,
       &:focus {
