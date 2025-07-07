@@ -106,15 +106,31 @@ export class TimelineDataManager {
         
         if (dateFieldIndex >= 0 && titleFieldIndex >= 0 && row[dateFieldIndex] && row[titleFieldIndex]) {
           const dateValue = row[dateFieldIndex].value;
-          const titleValue = row[titleFieldIndex].value;
+          const titleValue = row[titleFieldIndex];
+          
+          // Dashboard API 返回的数据结构：使用 text 字段作为显示文本
+          const title = titleValue && titleValue.text ? titleValue.text : String(titleValue.value || '');
+          if (!title) return;
+          
+          // 安全地处理日期字段
+          const date = new Date(dateValue as any);
+          if (isNaN(date.getTime())) return;
+          
+          // 安全地处理描述字段
+          const description = descFieldIndex >= 0 && row[descFieldIndex] ? 
+            (row[descFieldIndex].text || String(row[descFieldIndex].value || '')) : undefined;
+          
+          // 安全地处理状态字段
+          const statusItem = statusFieldIndex >= 0 && row[statusFieldIndex] ? row[statusFieldIndex] : null;
+          const status = statusItem ? (statusItem.text || String(statusItem.value || 'pending')) : 'pending';
           
           milestones.push({
             id: `milestone_${index}`,
-            date: new Date(dateValue as string),
-            title: String(titleValue),
-            description: descFieldIndex >= 0 && row[descFieldIndex] ? String(row[descFieldIndex].value || '') : undefined,
-            status: statusFieldIndex >= 0 && row[statusFieldIndex] ? row[statusFieldIndex].value as any : 'pending',
-            completed: statusFieldIndex >= 0 && row[statusFieldIndex] ? row[statusFieldIndex].value === 'completed' : false,
+            date,
+            title,
+            description,
+            status: status as any,
+            completed: status === 'completed' || status === '已完成',
             x: 0,
             y: 0
           });
@@ -146,20 +162,41 @@ export class TimelineDataManager {
       const milestones: MilestoneData[] = [];
       
       for (const record of records.records) {
-        const dateValue = record.fields[this.config.dateField];
-        const titleValue = record.fields[this.config.titleField];
-        
-        if (dateValue && titleValue) {
+        try {
+          const dateValue = record.fields[this.config.dateField];
+          const titleValue = record.fields[this.config.titleField];
+          
+          if (!dateValue || !titleValue) continue;
+          
+          // 使用 getCellString 安全地获取标题文本
+          const title = await table.getCellString(this.config.titleField, record.recordId);
+          if (!title) continue;
+          
+          // 处理日期字段 - 直接使用字段值，因为日期通常是时间戳
+          const date = new Date(dateValue as any);
+          if (isNaN(date.getTime())) continue;
+          
+          // 使用 getCellString 安全地获取描述文本
+          const description = this.config.descField ? 
+            await table.getCellString(this.config.descField, record.recordId) : undefined;
+          
+          // 使用 getCellString 安全地获取状态文本
+          const status = this.config.statusField ? 
+            await table.getCellString(this.config.statusField, record.recordId) || 'pending' : 'pending';
+          
           milestones.push({
             id: record.recordId,
-            date: new Date(dateValue as any),
-            title: String(titleValue),
-            description: this.config.descField ? String(record.fields[this.config.descField] || '') : undefined,
-            status: this.config.statusField ? record.fields[this.config.statusField] as any : 'pending',
-            completed: this.config.statusField ? record.fields[this.config.statusField] === 'completed' : false,
+            date,
+            title,
+            description: description || undefined,
+            status: status as any,
+            completed: status === 'completed' || status === '已完成',
             x: 0,
             y: 0
           });
+        } catch (error) {
+          console.warn('处理单条记录失败:', record, error);
+          continue;
         }
       }
       
@@ -170,6 +207,7 @@ export class TimelineDataManager {
       return this.getMockData();
     }
   }
+  
   
   // 时间范围过滤功能
   private applyTimeFilter(milestones: MilestoneData[]): MilestoneData[] {
@@ -191,7 +229,7 @@ export class TimelineDataManager {
   }
   
   // 获取模拟数据
-  private getMockData(): MilestoneData[] {
+  public getMockData(): MilestoneData[] {
     const currentYear = new Date().getFullYear();
     return [
       {

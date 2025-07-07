@@ -6,110 +6,6 @@ import { STimelineConfig, MilestoneData, DashboardMode } from './types';
 import { TimelineDataManager } from './utils/dataProcessor';
 import './style.scss';
 
-// 真实业务里程碑数据
-const getMockData = (): MilestoneData[] => {
-  return [
-    {
-      id: '1',
-      date: new Date(2025, 0, 31),
-      title: '全栈开发能力建设完成',
-      description: '实现框架全栈支持和多变体业务分发，打通前后端开发壁垒',
-      status: 'completed',
-      completed: true,
-      x: 0, y: 0
-    },
-    {
-      id: '2',
-      date: new Date(2025, 1, 28),
-      title: '前端部署架构优化完成',
-      description: '实现前端网关和应用分发优化，支持大客户定制和私有化部署',
-      status: 'completed',
-      completed: true,
-      x: 0, y: 0
-    },
-    {
-      id: '3',
-      date: new Date(2025, 2, 31),
-      title: 'AI能力集成里程碑',
-      description: '框架集成图片理解和数据分析AI能力，支持非结构化数据处理',
-      status: 'in-progress',
-      completed: false,
-      x: 0, y: 0
-    },
-    {
-      id: '4',
-      date: new Date(2025, 3, 30),
-      title: '前端监控体系建设完成',
-      description: '建立完整的前端应用监控和错误边界机制，实现客户问题快速定位和处理',
-      status: 'pending',
-      completed: false,
-      x: 0, y: 0
-    },
-    {
-      id: '5',
-      date: new Date(2025, 4, 31),
-      title: '后端服务稳定性全面提升',
-      description: '完成框架后端稳定性升级改造，解决服务重启和报错问题',
-      status: 'pending',
-      completed: false,
-      x: 0, y: 0
-    },
-    {
-      id: '6',
-      date: new Date(2025, 5, 30),
-      title: '微服务架构升级完成',
-      description: '完成限流熔断组件和Redis集群模式实现',
-      status: 'pending',
-      completed: false,
-      x: 0, y: 0
-    },
-    {
-      id: '7',
-      date: new Date(2025, 6, 31),
-      title: '移动端开发效率提升',
-      description: '完成APP热更新和H5开发能力建设',
-      status: 'pending',
-      completed: false,
-      x: 0, y: 0
-    },
-    {
-      id: '8',
-      date: new Date(2025, 7, 31),
-      title: '统一数据服务平台建设',
-      description: '完成统一指标服务和数据采集能力建设',
-      status: 'pending',
-      completed: false,
-      x: 0, y: 0
-    },
-    {
-      id: '9',
-      date: new Date(2025, 8, 30),
-      title: '框架知识产权保护',
-      description: '完成数据服务平台专利申请，建立技术护城河',
-      status: 'pending',
-      completed: false,
-      x: 0, y: 0
-    },
-    {
-      id: '10',
-      date: new Date(2025, 9, 31),
-      title: '开发工具链现代化',
-      description: '完成AI编程工具推广和前端构建工具升级',
-      status: 'pending',
-      completed: false,
-      x: 0, y: 0
-    },
-    {
-      id: '11',
-      date: new Date(2025, 10, 30),
-      title: '监控运维体系完善',
-      description: '建立完整的服务监控和性能监控体系',
-      status: 'pending',
-      completed: false,
-      x: 0, y: 0
-    }
-  ];
-};
 
 // 简化的默认配置 - 只保留必要的配置项
 const getDefaultConfig = (): STimelineConfig => ({
@@ -145,6 +41,7 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
   const [config, setConfig] = useState<STimelineConfig>(getDefaultConfig());
   const [milestones, setMilestones] = useState<MilestoneData[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>('');
   const [actualContainerSize, setActualContainerSize] = useState(containerSize);
   const containerRef = React.useRef<HTMLDivElement>(null);
   const resizeObserverRef = React.useRef<ResizeObserver>();
@@ -166,13 +63,12 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
     return DashboardMode.Config;
   }, [isCreate, isConfig, isView, isFullScreen]);
 
-  console.log('Dashboard state:', dashboardState, 'Current mode:', currentMode);
 
   // 加载数据
   const loadData = useCallback(async (configToUse: STimelineConfig, modeToUse: DashboardMode) => {
     setLoading(true);
+    setError('');
     try {
-      console.log('Loading data for mode:', modeToUse, 'config:', configToUse);
       const dataManager = new TimelineDataManager(configToUse, modeToUse);
       
       // 根据模式决定使用哪种数据加载方式
@@ -182,32 +78,29 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
         // 展示模式：必须有保存的配置才能加载数据
         try {
           data = await dataManager.loadTimelineData();
-          console.log('Loaded real data for view mode:', data.length, 'items');
         } catch (error) {
-          console.warn('展示模式下加载真实数据失败，使用mock数据:', error);
-          data = getMockData();
+          setError('无法加载数据，请检查配置。');
+          data = [];
         }
       } else {
         // 创建/配置模式：如果没有配置表格，使用 mock 数据；否则使用 getPreviewData
         if (!configToUse.tableId) {
-          console.log('No table configured, using mock data');
-          data = getMockData();
+          const dataManager = new TimelineDataManager(configToUse, modeToUse);
+          data = (dataManager as any).getMockData();
         } else {
           try {
             data = await dataManager.loadTimelineData();
-            console.log('Loaded preview data:', data.length, 'items');
           } catch (error) {
-            console.warn('加载预览数据失败，使用mock数据:', error);
-            data = getMockData();
+            const mockDataManager = new TimelineDataManager(configToUse, modeToUse);
+            data = (mockDataManager as any).getMockData();
           }
         }
       }
       
       setMilestones(data);
     } catch (error) {
-      console.error('加载数据失败:', error);
-      // 降级到 mock 数据
-      setMilestones(getMockData());
+      setError('加载数据失败，请重试。');
+      setMilestones([]);
     } finally {
       setLoading(false);
     }
@@ -215,7 +108,6 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
 
   // 配置变更处理 - 实时预览
   const handleConfigChange = useCallback(async (newConfig: STimelineConfig) => {
-    console.log('Config change:', newConfig);
     setConfig(newConfig);
     
     // 如果在配置模式下，立即更新预览
@@ -230,29 +122,20 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
       const dataManager = new TimelineDataManager(config, currentMode);
       const success = await dataManager.saveDataDependency();
       if (success) {
-        console.log('配置保存成功');
         // 保存后重新加载数据
         await loadData(config, currentMode);
       }
       return success;
     } catch (error) {
-      console.error('保存配置失败:', error);
+      setError('保存配置失败，请重试。');
       return false;
     }
   }, [config, currentMode, loadData]);
 
   // 初始化和模式变化处理
-  const prevModeRef = React.useRef<DashboardMode | null>(null);
-  
   useEffect(() => {
-    // 只在模式真正变化时重新初始化
-    if (prevModeRef.current === currentMode) return;
-    prevModeRef.current = currentMode;
-    
     const initialize = async () => {
       try {
-        console.log('Mode changed, initializing with:', currentMode);
-        
         // 在展示模式下尝试加载已保存的配置
         if (currentMode === DashboardMode.View || currentMode === DashboardMode.FullScreen) {
           try {
@@ -264,20 +147,21 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
               return;
             }
           } catch (error) {
-            console.warn('加载保存的配置失败:', error);
+            // 配置加载失败，继续使用默认配置
           }
         }
         
         // 使用默认配置加载数据
         await loadData(getDefaultConfig(), currentMode);
       } catch (error) {
-        console.error('初始化失败:', error);
-        setMilestones(getMockData());
+        setError('初始化失败，请刷新页面重试。');
+        const mockDataManager = new TimelineDataManager(getDefaultConfig(), currentMode);
+        setMilestones((mockDataManager as any).getMockData());
       }
     };
     
     initialize();
-  }, [currentMode, loadData]);
+  }, [currentMode]);
 
   // 监听数据变化
   useEffect(() => {
@@ -330,10 +214,6 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
     };
   }, [actualContainerSize]);
 
-  // 更新外部传入的容器大小
-  useEffect(() => {
-    setActualContainerSize(containerSize);
-  }, [containerSize]);
 
   // 配置模式包括创建和配置状态
   const isConfigMode = isConfig;
@@ -346,6 +226,15 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
         </div>
       )}
       
+      {error && (
+        <div className="error-overlay">
+          <div className="error-content">
+            <h3>数据加载失败</h3>
+            <p>{error}</p>
+          </div>
+        </div>
+      )}
+      
       {isConfigMode ? (
         // 配置模式：左侧预览，右侧配置
         <div className="config-layout">
@@ -353,10 +242,7 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
             <TimelineRenderer 
               milestones={milestones}
               config={config}
-              containerSize={{
-                width: actualContainerSize.width - 340, // 减去固定配置面板宽度，因为配置面板虽然是fixed但会遮挡内容
-                height: actualContainerSize.height
-              }}
+              containerSize={actualContainerSize}
             />
           </div>
           {/* 配置面板只在配置模式下渲染 */}
