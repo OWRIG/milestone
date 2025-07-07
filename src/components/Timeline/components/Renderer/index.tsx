@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { MilestoneData, STimelineConfig, ContainerSize } from '../../types';
 import { STimelineAlgorithm } from '../../utils/sAlgorithm';
-import MilestoneNode from './MilestoneNode';
+import MilestoneCircle from './MilestoneCircle';
+import MilestoneCard from './MilestoneCard';
 import './style.scss';
 
 interface TimelineRendererProps {
@@ -66,6 +67,11 @@ const TimelineRenderer: React.FC<TimelineRendererProps> = ({
     onMilestoneClick?.(milestone);
   };
   
+  // 计算动态高度
+  const dynamicHeight = processedMilestones.length > 0 
+    ? Math.max(containerSize.height, algorithm.current.calculateRequiredHeight(processedMilestones.length))
+    : containerSize.height;
+
   // 如果没有数据，显示空状态
   if (milestones.length === 0) {
     return (
@@ -93,14 +99,10 @@ const TimelineRenderer: React.FC<TimelineRendererProps> = ({
       </div>
     );
   }
-  
-  // 计算动态高度
-  const dynamicHeight = processedMilestones.length > 0 
-    ? Math.max(containerSize.height, algorithm.current.calculateRequiredHeight(processedMilestones.length))
-    : containerSize.height;
 
   return (
     <div className={`s-timeline-renderer ${className}`}>
+      {/* SVG 容器：负责连接线和节点圆圈 */}
       <svg
         ref={svgRef}
         width={containerSize.width}
@@ -143,9 +145,9 @@ const TimelineRenderer: React.FC<TimelineRendererProps> = ({
           />
         )}
         
-        {/* 里程碑节点 */}
+        {/* 里程碑圆圈节点 */}
         {processedMilestones.map((milestone, index) => (
-          <MilestoneNode
+          <MilestoneCircle
             key={milestone.id || index}
             milestone={milestone}
             config={config}
@@ -155,8 +157,26 @@ const TimelineRenderer: React.FC<TimelineRendererProps> = ({
         ))}
       </svg>
       
-      {/* 工具提示层 */}
-      <div className="tooltip-layer" />
+      {/* HTML 容器：负责信息卡片 */}
+      <div 
+        className="milestone-cards-container"
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: dynamicHeight,
+          pointerEvents: 'auto', // 允许卡片交互
+        }}
+      >
+        {processedMilestones.map((milestone, index) => (
+          <MilestoneCard
+            key={`card-${milestone.id || index}`}
+            milestone={milestone}
+            config={config}
+            onClick={handleMilestoneClick}
+            index={index}
+          />
+        ))}
+      </div>
     </div>
   );
 };

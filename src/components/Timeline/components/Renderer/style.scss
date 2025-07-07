@@ -5,6 +5,24 @@
   overflow: auto; // 支持横向和纵向滚动
   background-color: var(--semi-color-bg-0);
   
+  // 新的分离布局
+  .milestone-cards-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none; // 默认不阻挡SVG交互
+    
+    .milestone-card {
+      pointer-events: auto; // 但允许卡片交互
+      
+      // 改善卡片样式
+      &:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.2) !important;
+      }
+    }
+  }
+  
   .s-timeline-svg {
     width: 100%;
     height: 100%;
@@ -19,7 +37,8 @@
       vector-effect: non-scaling-stroke;
     }
     
-    .milestone-node {
+    // SVG 节点样式
+    .milestone-circle-group {
       .milestone-date {
         font-family: var(--semi-font-family);
         user-select: none;
@@ -38,45 +57,6 @@
       .milestone-center {
         pointer-events: none;
         user-select: none;
-      }
-      
-      // 新的信息卡片样式
-      .info-card {
-        transition: filter 0.2s ease;
-        
-        &:hover {
-          filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
-        }
-      }
-      
-      .milestone-title {
-        font-family: var(--semi-font-family);
-        font-weight: 500;
-        user-select: none;
-        pointer-events: none;
-      }
-      
-      .milestone-description {
-        font-family: var(--semi-font-family);
-        user-select: none;
-        pointer-events: none;
-        opacity: 0.8;
-      }
-      
-      .milestone-tooltip {
-        pointer-events: none;
-        user-select: none;
-        animation: fadeIn 0.3s ease-in-out;
-        
-        .tooltip-bg {
-          filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
-        }
-        
-        text {
-          font-family: var(--semi-font-family);
-          user-select: none;
-          pointer-events: none;
-        }
       }
     }
   }
