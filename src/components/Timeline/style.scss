@@ -1,0 +1,208 @@
+.s-timeline-dashboard {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  position: relative;
+  background-color: var(--semi-color-bg-0);
+  
+  // 配置模式布局
+  &.mode-config {
+    .config-layout {
+      display: flex;
+      height: 100%;
+      
+      .config-panel-wrapper {
+        width: 350px;
+        min-width: 350px;
+        height: 100%;
+        border-right: 1px solid var(--semi-color-border);
+        background-color: var(--semi-color-bg-1);
+        display: flex;
+        flex-direction: column;
+        
+        .config-actions {
+          padding: 16px;
+          border-top: 1px solid var(--semi-color-border);
+          background-color: var(--semi-color-bg-0);
+          
+          .save-button {
+            width: 100%;
+            height: 36px;
+            background-color: var(--semi-color-primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            
+            &:hover:not(:disabled) {
+              background-color: var(--semi-color-primary-hover);
+            }
+            
+            &:disabled {
+              opacity: 0.6;
+              cursor: not-allowed;
+            }
+          }
+        }
+      }
+      
+      .timeline-preview {
+        flex: 1;
+        height: 100%;
+        overflow: hidden;
+      }
+    }
+  }
+  
+  // 查看模式布局
+  &.mode-view,
+  &.mode-fullscreen,
+  &.mode-create {
+    .view-layout {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      
+      .config-overlay {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        width: 300px;
+        max-height: calc(100% - 40px);
+        background-color: var(--semi-color-bg-0);
+        border: 1px solid var(--semi-color-border);
+        border-radius: 8px;
+        box-shadow: var(--semi-shadow-elevated);
+        z-index: 100;
+        overflow-y: auto;
+      }
+    }
+  }
+  
+  // 全屏模式特殊处理
+  &.mode-fullscreen {
+    .config-overlay {
+      display: none; // 全屏模式隐藏配置面板
+    }
+  }
+  
+  // 错误状态
+  .s-timeline-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+    
+    .error-content {
+      text-align: center;
+      color: var(--semi-color-text-1);
+      
+      h3 {
+        margin: 0 0 12px 0;
+        font-size: 18px;
+        color: var(--semi-color-danger);
+      }
+      
+      p {
+        margin: 0 0 20px 0;
+        font-size: 14px;
+        color: var(--semi-color-text-2);
+      }
+      
+      button {
+        padding: 8px 16px;
+        background-color: var(--semi-color-primary);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        
+        &:hover {
+          background-color: var(--semi-color-primary-hover);
+        }
+      }
+    }
+  }
+  
+  // 加载状态
+  .loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    
+    .loading-spinner {
+      padding: 20px 30px;
+      background-color: var(--semi-color-bg-0);
+      border-radius: 8px;
+      box-shadow: var(--semi-shadow-elevated);
+      color: var(--semi-color-text-1);
+      font-size: 14px;
+    }
+  }
+  
+  // 响应式设计
+  @media (max-width: 768px) {
+    &.mode-config {
+      .config-layout {
+        flex-direction: column;
+        
+        .config-panel-wrapper {
+          width: 100%;
+          min-width: auto;
+          height: 300px;
+          border-right: none;
+          border-bottom: 1px solid var(--semi-color-border);
+        }
+        
+        .timeline-preview {
+          height: calc(100% - 300px);
+        }
+      }
+    }
+    
+    .config-overlay {
+      position: fixed !important;
+      top: 10px !important;
+      right: 10px !important;
+      left: 10px !important;
+      width: auto !important;
+      max-height: calc(100vh - 20px) !important;
+    }
+  }
+  
+  // 暗色主题适配
+  [theme-mode="dark"] & {
+    background-color: var(--semi-color-bg-0);
+    
+    .config-panel-wrapper {
+      background-color: var(--semi-color-bg-1);
+      border-color: var(--semi-color-border);
+    }
+    
+    .config-overlay {
+      background-color: var(--semi-color-bg-0);
+      border-color: var(--semi-color-border);
+    }
+    
+    .loading-overlay {
+      background-color: rgba(0, 0, 0, 0.6);
+      
+      .loading-spinner {
+        background-color: var(--semi-color-bg-0);
+        color: var(--semi-color-text-0);
+      }
+    }
+  }
+}

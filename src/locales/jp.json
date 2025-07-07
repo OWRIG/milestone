@@ -1,0 +1,54 @@
+{
+  "timeline.title": "Sカーブタイムラインダッシュボード",
+  "config.data.source": "データソース設定",
+  "config.field.mapping": "フィールドマッピング",
+  "config.time.range": "時間範囲",
+  "config.style": "スタイル設定",
+  "config.layout": "レイアウト設定",
+  
+  "table.select": "テーブル選択",
+  "table.select.placeholder": "データテーブルを選択してください",
+  "field.date": "日付フィールド",
+  "field.date.placeholder": "日付フィールドを選択してください",
+  "field.title": "タイトルフィールド",
+  "field.title.placeholder": "タイトルフィールドを選択してください",
+  "field.description": "説明フィールド",
+  "field.description.placeholder": "説明フィールドを選択してください（オプション）",
+  "field.status": "ステータスフィールド",
+  "field.status.placeholder": "ステータスフィールドを選択してください（オプション）",
+  
+  "time.range.type": "時間範囲タイプ",
+  "time.range.year": "今年",
+  "time.range.month": "今月",
+  "time.range.quarter": "今四半期",
+  "time.range.custom": "カスタム",
+  "time.range.start": "開始日",
+  "time.range.end": "終了日",
+  
+  "style.node.color": "ノード色",
+  "style.line.color": "ライン色",
+  "style.completed.color": "完了色",
+  
+  "layout.curve.tension": "カーブテンション",
+  "layout.node.size": "ノードサイズ",
+  "layout.min.spacing": "最小間隔",
+  "layout.show.description": "説明を表示",
+  "layout.adaptive": "適応レイアウト",
+  
+  "save.config": "設定を保存",
+  "saving": "保存中...",
+  "load.failed": "読み込み失敗",
+  "reload": "再読み込み",
+  "no.data": "データなし",
+  "no.data.desc": "データソースとフィールドマッピングを設定してください",
+  "loading": "読み込み中...",
+  
+  "status.completed": "完了",
+  "status.pending": "保留中",
+  "status.in.progress": "進行中",
+  
+  "error.config.required": "必須設定項目を完了してください",
+  "error.table.required": "データテーブルを選択してください",
+  "error.date.field.required": "日付フィールドを選択してください",
+  "error.title.field.required": "タイトルフィールドを選択してください"
+}

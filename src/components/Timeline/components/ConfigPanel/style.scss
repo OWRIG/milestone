@@ -1,0 +1,186 @@
+.config-panel {
+  padding: 20px;
+  height: 100%;
+  overflow-y: auto;
+  background-color: var(--semi-color-bg-1);
+  
+  .config-section {
+    margin-bottom: 24px;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+    
+    h4 {
+      margin: 0 0 16px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--semi-color-text-0);
+      border-bottom: 1px solid var(--semi-color-border);
+      padding-bottom: 8px;
+    }
+  }
+  
+  .config-item {
+    margin-bottom: 16px;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--semi-color-text-1);
+      
+      &::after {
+        content: '';
+      }
+    }
+    
+    // Switch 组件特殊布局
+    &.switch-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      
+      label {
+        margin-bottom: 0;
+        flex: 1;
+      }
+    }
+  }
+  
+  // Semi UI 组件样式调整
+  .semi-select,
+  .semi-slider,
+  .semi-color-picker,
+  .semi-date-picker {
+    .semi-select-selection,
+    .semi-input,
+    .semi-date-picker-input {
+      border-radius: 6px;
+      border-color: var(--semi-color-border);
+      transition: all 0.2s;
+      
+      &:hover {
+        border-color: var(--semi-color-primary-hover);
+      }
+      
+      &:focus,
+      &.semi-select-focus {
+        border-color: var(--semi-color-primary);
+        box-shadow: 0 0 0 2px rgba(var(--semi-color-primary-rgb), 0.1);
+      }
+    }
+  }
+  
+  .semi-slider {
+    .semi-slider-rail {
+      background-color: var(--semi-color-fill-1);
+    }
+    
+    .semi-slider-track {
+      background-color: var(--semi-color-primary);
+    }
+    
+    .semi-slider-handle {
+      border-color: var(--semi-color-primary);
+      
+      &:hover,
+      &:focus {
+        border-color: var(--semi-color-primary-hover);
+        box-shadow: 0 0 0 6px rgba(var(--semi-color-primary-rgb), 0.1);
+      }
+    }
+  }
+  
+  .semi-switch {
+    &.semi-switch-checked {
+      background-color: var(--semi-color-primary);
+    }
+    
+    &:hover {
+      &.semi-switch-checked {
+        background-color: var(--semi-color-primary-hover);
+      }
+    }
+  }
+  
+  // 加载状态
+  .semi-select-loading,
+  .semi-select-disabled {
+    opacity: 0.6;
+  }
+  
+  // 错误状态
+  .config-item-error {
+    .semi-select-selection,
+    .semi-input {
+      border-color: var(--semi-color-danger);
+      
+      &:focus {
+        border-color: var(--semi-color-danger);
+        box-shadow: 0 0 0 2px rgba(var(--semi-color-danger-rgb), 0.1);
+      }
+    }
+  }
+  
+  // 响应式设计
+  @media (max-width: 768px) {
+    padding: 16px;
+    
+    .config-section {
+      margin-bottom: 20px;
+      
+      h4 {
+        font-size: 14px;
+        margin-bottom: 12px;
+      }
+    }
+    
+    .config-item {
+      margin-bottom: 12px;
+      
+      label {
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+    }
+  }
+  
+  // 暗色主题适配
+  [theme-mode="dark"] & {
+    background-color: var(--semi-color-bg-1);
+    
+    .config-section h4 {
+      color: var(--semi-color-text-0);
+      border-color: var(--semi-color-border);
+    }
+    
+    .config-item label {
+      color: var(--semi-color-text-1);
+    }
+  }
+  
+  // 滚动条样式
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: var(--semi-color-fill-0);
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: var(--semi-color-fill-2);
+    border-radius: 3px;
+    
+    &:hover {
+      background: var(--semi-color-fill-3);
+    }
+  }
+}

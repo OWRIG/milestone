@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:lark-base-team.github.io)",
+      "mcp__ide__executeCode",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(grep:*)",
+      "Bash(pnpm add:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm run build:*)",
+      "Bash(rm:*)",
+      "Bash(mv:*)"
+    ],
+    "deny": []
+  }
+}

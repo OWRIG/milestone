@@ -1,0 +1,54 @@
+{
+  "timeline.title": "S-shaped Timeline Dashboard",
+  "config.data.source": "Data Source Configuration",
+  "config.field.mapping": "Field Mapping",
+  "config.time.range": "Time Range",
+  "config.style": "Style Configuration",
+  "config.layout": "Layout Configuration",
+  
+  "table.select": "Select Table",
+  "table.select.placeholder": "Please select a data table",
+  "field.date": "Date Field",
+  "field.date.placeholder": "Please select date field",
+  "field.title": "Title Field",
+  "field.title.placeholder": "Please select title field",
+  "field.description": "Description Field",
+  "field.description.placeholder": "Please select description field (optional)",
+  "field.status": "Status Field",
+  "field.status.placeholder": "Please select status field (optional)",
+  
+  "time.range.type": "Time Range Type",
+  "time.range.year": "Current Year",
+  "time.range.month": "Current Month",
+  "time.range.quarter": "Current Quarter",
+  "time.range.custom": "Custom",
+  "time.range.start": "Start Date",
+  "time.range.end": "End Date",
+  
+  "style.node.color": "Node Color",
+  "style.line.color": "Line Color",
+  "style.completed.color": "Completed Color",
+  
+  "layout.curve.tension": "Curve Tension",
+  "layout.node.size": "Node Size",
+  "layout.min.spacing": "Minimum Spacing",
+  "layout.show.description": "Show Description",
+  "layout.adaptive": "Adaptive Layout",
+  
+  "save.config": "Save Configuration",
+  "saving": "Saving...",
+  "load.failed": "Load Failed",
+  "reload": "Reload",
+  "no.data": "No Data",
+  "no.data.desc": "Please configure data source and field mapping",
+  "loading": "Loading...",
+  
+  "status.completed": "Completed",
+  "status.pending": "Pending",
+  "status.in.progress": "In Progress",
+  
+  "error.config.required": "Please complete required configuration",
+  "error.table.required": "Please select a data table",
+  "error.date.field.required": "Please select date field",
+  "error.title.field.required": "Please select title field"
+}

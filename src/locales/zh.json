@@ -1,0 +1,54 @@
+{
+  "timeline.title": "S型时间线仪表盘",
+  "config.data.source": "数据源配置",
+  "config.field.mapping": "字段映射",
+  "config.time.range": "时间范围",
+  "config.style": "样式配置",
+  "config.layout": "布局配置",
+  
+  "table.select": "选择表格",
+  "table.select.placeholder": "请选择数据表",
+  "field.date": "日期字段",
+  "field.date.placeholder": "请选择日期字段",
+  "field.title": "标题字段",
+  "field.title.placeholder": "请选择标题字段",
+  "field.description": "描述字段",
+  "field.description.placeholder": "请选择描述字段（可选）",
+  "field.status": "状态字段",
+  "field.status.placeholder": "请选择状态字段（可选）",
+  
+  "time.range.type": "时间范围类型",
+  "time.range.year": "当年",
+  "time.range.month": "当月",
+  "time.range.quarter": "当季度",
+  "time.range.custom": "自定义",
+  "time.range.start": "开始日期",
+  "time.range.end": "结束日期",
+  
+  "style.node.color": "节点颜色",
+  "style.line.color": "连接线颜色",
+  "style.completed.color": "已完成颜色",
+  
+  "layout.curve.tension": "曲线张力",
+  "layout.node.size": "节点大小",
+  "layout.min.spacing": "最小间距",
+  "layout.show.description": "显示描述",
+  "layout.adaptive": "自适应布局",
+  
+  "save.config": "保存配置",
+  "saving": "保存中...",
+  "load.failed": "加载失败",
+  "reload": "重新加载",
+  "no.data": "暂无数据",
+  "no.data.desc": "请配置数据源和字段映射",
+  "loading": "加载中...",
+  
+  "status.completed": "已完成",
+  "status.pending": "待处理",
+  "status.in.progress": "进行中",
+  
+  "error.config.required": "请完成必填配置项",
+  "error.table.required": "请选择数据表",
+  "error.date.field.required": "请选择日期字段",
+  "error.title.field.required": "请选择标题字段"
+}

@@ -1,0 +1,266 @@
+.s-timeline-renderer {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--semi-color-bg-0);
+  
+  .s-timeline-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    
+    .s-timeline-path {
+      animation: drawPath 2s ease-in-out;
+    }
+    
+    .milestone-node {
+      .milestone-circle {
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        
+        &:hover {
+          transform: scale(1.1);
+          filter: url(#glow);
+        }
+        
+        &.completed {
+          animation: pulse 2s infinite;
+        }
+        
+        &.pending {
+          opacity: 0.8;
+        }
+      }
+      
+      .milestone-text {
+        pointer-events: none;
+        user-select: none;
+        
+        .milestone-title {
+          font-family: var(--semi-font-family);
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+        
+        .milestone-date {
+          font-family: var(--semi-font-family);
+          font-size: 12px;
+          opacity: 0.8;
+        }
+        
+        .milestone-description {
+          font-family: var(--semi-font-family);
+          font-size: 11px;
+          opacity: 0.7;
+        }
+      }
+      
+      .milestone-tooltip {
+        pointer-events: none;
+        animation: fadeIn 0.2s ease-in-out;
+        
+        rect {
+          fill: var(--semi-color-bg-0);
+          stroke: var(--semi-color-border);
+          filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1));
+        }
+        
+        text {
+          font-family: var(--semi-font-family);
+        }
+      }
+    }
+  }
+  
+  // 空状态样式
+  .empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
+    
+    .empty-content {
+      text-align: center;
+      color: var(--semi-color-text-2);
+      
+      svg {
+        margin-bottom: 16px;
+        color: var(--semi-color-text-3);
+      }
+      
+      h3 {
+        margin: 0 0 8px 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--semi-color-text-1);
+      }
+      
+      p {
+        margin: 0;
+        font-size: 14px;
+        color: var(--semi-color-text-2);
+      }
+    }
+  }
+  
+  // 工具提示层
+  .tooltip-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+  }
+  
+  // 动画定义
+  @keyframes drawPath {
+    0% {
+      stroke-dasharray: 1000;
+      stroke-dashoffset: 1000;
+    }
+    100% {
+      stroke-dasharray: 1000;
+      stroke-dashoffset: 0;
+    }
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+  
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  // 响应式设计
+  @media (max-width: 768px) {
+    .milestone-node {
+      .milestone-text {
+        .milestone-title {
+          font-size: 12px;
+        }
+        
+        .milestone-date {
+          font-size: 10px;
+        }
+        
+        .milestone-description {
+          font-size: 10px;
+        }
+      }
+      
+      .milestone-tooltip {
+        rect {
+          width: 140px;
+          height: 45px;
+        }
+        
+        text {
+          font-size: 11px;
+        }
+      }
+    }
+  }
+  
+  // 暗色主题适配
+  [theme-mode="dark"] & {
+    background-color: var(--semi-color-bg-0);
+    
+    .s-timeline-svg {
+      .milestone-node {
+        .milestone-circle {
+          stroke: var(--semi-color-bg-0);
+        }
+        
+        .milestone-text {
+          .milestone-title {
+            fill: var(--semi-color-text-0);
+          }
+          
+          .milestone-date {
+            fill: var(--semi-color-text-2);
+          }
+          
+          .milestone-description {
+            fill: var(--semi-color-text-1);
+          }
+        }
+        
+        .milestone-tooltip {
+          rect {
+            fill: var(--semi-color-bg-1);
+            stroke: var(--semi-color-border);
+          }
+          
+          text {
+            fill: var(--semi-color-text-0);
+          }
+        }
+      }
+    }
+    
+    .empty-state {
+      .empty-content {
+        svg {
+          color: var(--semi-color-text-3);
+        }
+        
+        h3 {
+          color: var(--semi-color-text-0);
+        }
+        
+        p {
+          color: var(--semi-color-text-2);
+        }
+      }
+    }
+  }
+  
+  // 打印样式
+  @media print {
+    .milestone-node {
+      .milestone-tooltip {
+        display: none;
+      }
+    }
+    
+    .s-timeline-path {
+      animation: none;
+    }
+  }
+}
+
+// 全局SVG样式优化
+.s-timeline-svg {
+  // 提升渲染性能
+  transform-origin: center;
+  will-change: transform;
+  
+  // 确保文本清晰度
+  text {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  // 确保路径平滑
+  path {
+    vector-effect: non-scaling-stroke;
+  }
+}
