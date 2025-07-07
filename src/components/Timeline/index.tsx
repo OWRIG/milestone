@@ -191,6 +191,20 @@ const TimelineDashboard: React.FC<STimelineProps> = ({
         
         if (mode === DashboardMode.View || mode === DashboardMode.FullScreen) {
           await loadSavedConfigAndData();
+        } else if (mode === DashboardMode.Config) {
+          // 配置模式：尝试加载已保存的配置，但总是显示数据（包括模拟数据）
+          try {
+            const savedConfig = await dashboard.getConfig();
+            if (savedConfig?.customConfig) {
+              const newConfig = { ...getDefaultConfig(), ...savedConfig.customConfig };
+              setState(prev => ({ ...prev, config: newConfig }));
+              dataManagerRef.current.updateConfig(newConfig);
+              onConfigChange?.(newConfig);
+            }
+          } catch (error) {
+            console.warn('加载配置失败，使用默认配置:', error);
+          }
+          await loadMockData();
         } else {
           await loadMockData();
         }
