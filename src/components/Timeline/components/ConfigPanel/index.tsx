@@ -6,7 +6,7 @@ import { ConfigPanelProps, STimelineConfig } from '../../types';
 import { useTranslation } from 'react-i18next';
 import './style.scss';
 
-const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loading = false }) => {
+const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, onSave, loading = false }) => {
   const { t } = useTranslation();
   const [tableList, setTableList] = useState<any[]>([]);
   const [fieldList, setFieldList] = useState<any[]>([]);
@@ -140,18 +140,22 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
 
     setSaving(true);
     try {
-      // 构建数据条件
-      const dataConditions = {
-        tableId: config.tableId,
-        dataRange: { type: 'ALL' },
-        groups: config.dateField ? [{ fieldId: config.dateField }] : [],
-        series: config.titleField ? [{ fieldId: config.titleField, rollup: 'COUNTA' }] : 'COUNTA'
-      } as any;
+      if (onSave) {
+        await onSave();
+      } else {
+        // 降级方案：直接保存
+        const dataConditions = {
+          tableId: config.tableId,
+          dataRange: { type: 'ALL' },
+          groups: config.dateField ? [{ fieldId: config.dateField }] : [],
+          series: config.titleField ? [{ fieldId: config.titleField, rollup: 'COUNTA' }] : 'COUNTA'
+        } as any;
 
-      await dashboard.saveConfig({
-        customConfig: config as Record<string, unknown>,
-        dataConditions: [dataConditions],
-      });
+        await dashboard.saveConfig({
+          customConfig: config as Record<string, unknown>,
+          dataConditions: [dataConditions],
+        });
+      }
       
       console.log('配置保存成功');
     } catch (error) {

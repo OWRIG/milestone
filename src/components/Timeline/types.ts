@@ -78,6 +78,7 @@ export interface STimelineProps {
 export interface ConfigPanelProps {
   config: STimelineConfig;
   onConfigChange: (config: STimelineConfig) => void;
+  onSave?: () => Promise<boolean>;
   loading?: boolean;
 }
 
