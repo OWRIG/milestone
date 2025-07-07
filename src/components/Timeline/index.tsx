@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { dashboard } from '@lark-base-open/js-sdk';
 import TimelineRenderer from './components/Renderer';
 import ConfigPanel from './components/ConfigPanel';
@@ -150,19 +150,23 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
   const resizeObserverRef = React.useRef<ResizeObserver>();
 
   // 直接使用 dashboard.state 检测状态，参照官方示例
-  const isCreate = dashboard.state === 'Create';
-  const isConfig = dashboard.state === 'Config' || isCreate;
-  const isView = dashboard.state === 'View';
-  const isFullScreen = dashboard.state === 'FullScreen';
+  const dashboardState = dashboard.state;
   
-  // 当前模式
-  const currentMode = isCreate ? DashboardMode.Create : 
-                     isConfig && !isCreate ? DashboardMode.Config :
-                     isView ? DashboardMode.View :
-                     isFullScreen ? DashboardMode.FullScreen :
-                     DashboardMode.Config;
+  const isCreate = dashboardState === 'Create';
+  const isConfig = dashboardState === 'Config' || isCreate;
+  const isView = dashboardState === 'View';
+  const isFullScreen = dashboardState === 'FullScreen';
+  
+  // 使用 useMemo 稳定 currentMode 计算
+  const currentMode = useMemo(() => {
+    if (isCreate) return DashboardMode.Create;
+    if (isConfig && !isCreate) return DashboardMode.Config;
+    if (isView) return DashboardMode.View;
+    if (isFullScreen) return DashboardMode.FullScreen;
+    return DashboardMode.Config;
+  }, [isCreate, isConfig, isView, isFullScreen]);
 
-  console.log('Dashboard state:', dashboard.state, 'Current mode:', currentMode);
+  console.log('Dashboard state:', dashboardState, 'Current mode:', currentMode);
 
   // 加载数据
   const loadData = useCallback(async (configToUse: STimelineConfig, modeToUse: DashboardMode) => {
@@ -215,10 +219,10 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
     setConfig(newConfig);
     
     // 如果在配置模式下，立即更新预览
-    if (currentMode === DashboardMode.Config || currentMode === DashboardMode.Create) {
+    if (isConfig) {
       await loadData(newConfig, currentMode);
     }
-  }, [currentMode, loadData]);
+  }, [isConfig, currentMode, loadData]);
 
   // 保存配置
   const handleSave = useCallback(async () => {
@@ -237,13 +241,19 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
     }
   }, [config, currentMode, loadData]);
 
-  // 初始化
+  // 初始化和模式变化处理
+  const prevModeRef = React.useRef<DashboardMode | null>(null);
+  
   useEffect(() => {
+    // 只在模式真正变化时重新初始化
+    if (prevModeRef.current === currentMode) return;
+    prevModeRef.current = currentMode;
+    
     const initialize = async () => {
       try {
-        console.log('Initializing with mode:', currentMode);
+        console.log('Mode changed, initializing with:', currentMode);
         
-        // 尝试加载已保存的配置
+        // 在展示模式下尝试加载已保存的配置
         if (currentMode === DashboardMode.View || currentMode === DashboardMode.FullScreen) {
           try {
             const savedConfig = await dashboard.getConfig();
@@ -259,7 +269,7 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
         }
         
         // 使用默认配置加载数据
-        await loadData(config, currentMode);
+        await loadData(getDefaultConfig(), currentMode);
       } catch (error) {
         console.error('初始化失败:', error);
         setMilestones(getMockData());
@@ -267,7 +277,7 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
     };
     
     initialize();
-  }, [currentMode, loadData, config]);
+  }, [currentMode, loadData]);
 
   // 监听数据变化
   useEffect(() => {
