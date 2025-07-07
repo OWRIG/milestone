@@ -145,46 +145,57 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
   const [config, setConfig] = useState<STimelineConfig>(getDefaultConfig());
   const [milestones, setMilestones] = useState<MilestoneData[]>([]);
   const [loading, setLoading] = useState(false);
-  const [currentMode, setCurrentMode] = useState<DashboardMode>(mode);
   const [actualContainerSize, setActualContainerSize] = useState(containerSize);
   const containerRef = React.useRef<HTMLDivElement>(null);
   const resizeObserverRef = React.useRef<ResizeObserver>();
 
-  // 检测当前运行模式
-  const detectMode = useCallback(async (): Promise<DashboardMode> => {
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlMode = urlParams.get('mode');
-      
-      switch (urlMode) {
-        case 'config': return DashboardMode.Config;
-        case 'view': return DashboardMode.View;
-        case 'fullscreen': return DashboardMode.FullScreen;
-        default: return DashboardMode.Create;
-      }
-    } catch (error) {
-      console.warn('检测模式失败，使用默认模式');
-      return DashboardMode.Create;
-    }
-  }, []);
+  // 直接使用 dashboard.state 检测状态，参照官方示例
+  const isCreate = dashboard.state === 'Create';
+  const isConfig = dashboard.state === 'Config' || isCreate;
+  const isView = dashboard.state === 'View';
+  const isFullScreen = dashboard.state === 'FullScreen';
+  
+  // 当前模式
+  const currentMode = isCreate ? DashboardMode.Create : 
+                     isConfig && !isCreate ? DashboardMode.Config :
+                     isView ? DashboardMode.View :
+                     isFullScreen ? DashboardMode.FullScreen :
+                     DashboardMode.Config;
+
+  console.log('Dashboard state:', dashboard.state, 'Current mode:', currentMode);
 
   // 加载数据
   const loadData = useCallback(async (configToUse: STimelineConfig, modeToUse: DashboardMode) => {
     setLoading(true);
     try {
+      console.log('Loading data for mode:', modeToUse, 'config:', configToUse);
       const dataManager = new TimelineDataManager(configToUse, modeToUse);
       
       // 根据模式决定使用哪种数据加载方式
       let data: MilestoneData[];
+      
       if (modeToUse === DashboardMode.View || modeToUse === DashboardMode.FullScreen) {
-        // 展示模式：使用 getData 获取完整数据
-        data = await dataManager.loadTimelineData();
+        // 展示模式：必须有保存的配置才能加载数据
+        try {
+          data = await dataManager.loadTimelineData();
+          console.log('Loaded real data for view mode:', data.length, 'items');
+        } catch (error) {
+          console.warn('展示模式下加载真实数据失败，使用mock数据:', error);
+          data = getMockData();
+        }
       } else {
         // 创建/配置模式：如果没有配置表格，使用 mock 数据；否则使用 getPreviewData
         if (!configToUse.tableId) {
+          console.log('No table configured, using mock data');
           data = getMockData();
         } else {
-          data = await dataManager.loadTimelineData();
+          try {
+            data = await dataManager.loadTimelineData();
+            console.log('Loaded preview data:', data.length, 'items');
+          } catch (error) {
+            console.warn('加载预览数据失败，使用mock数据:', error);
+            data = getMockData();
+          }
         }
       }
       
@@ -230,17 +241,16 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
   useEffect(() => {
     const initialize = async () => {
       try {
-        const detectedMode = await detectMode();
-        setCurrentMode(detectedMode);
+        console.log('Initializing with mode:', currentMode);
         
         // 尝试加载已保存的配置
-        if (detectedMode === DashboardMode.View || detectedMode === DashboardMode.FullScreen) {
+        if (currentMode === DashboardMode.View || currentMode === DashboardMode.FullScreen) {
           try {
             const savedConfig = await dashboard.getConfig();
             if (savedConfig?.customConfig) {
               const newConfig = { ...getDefaultConfig(), ...savedConfig.customConfig };
               setConfig(newConfig);
-              await loadData(newConfig, detectedMode);
+              await loadData(newConfig, currentMode);
               return;
             }
           } catch (error) {
@@ -249,7 +259,7 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
         }
         
         // 使用默认配置加载数据
-        await loadData(config, detectedMode);
+        await loadData(config, currentMode);
       } catch (error) {
         console.error('初始化失败:', error);
         setMilestones(getMockData());
@@ -257,7 +267,7 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
     };
     
     initialize();
-  }, [detectMode, loadData, config]);
+  }, [currentMode, loadData, config]);
 
   // 监听数据变化
   useEffect(() => {
@@ -315,7 +325,8 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
     setActualContainerSize(containerSize);
   }, [containerSize]);
 
-  const isConfigMode = currentMode === DashboardMode.Config || currentMode === DashboardMode.Create;
+  // 配置模式包括创建和配置状态
+  const isConfigMode = isConfig;
 
   return (
     <div ref={containerRef} className={`s-timeline-dashboard mode-${currentMode}`}>
@@ -333,19 +344,22 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
               milestones={milestones}
               config={config}
               containerSize={{
-                width: containerSize.width, // 减去固定配置面板宽度
-                height: containerSize.height
+                width: actualContainerSize.width - 340, // 减去固定配置面板宽度，因为配置面板虽然是fixed但会遮挡内容
+                height: actualContainerSize.height
               }}
             />
           </div>
-          <div className="config-panel-wrapper">
-            <ConfigPanel 
-              config={config}
-              onConfigChange={handleConfigChange}
-              onSave={handleSave}
-              loading={loading}
-            />
-          </div>
+          {/* 配置面板只在配置模式下渲染 */}
+          {isConfig && (
+            <div className="config-panel-wrapper">
+              <ConfigPanel 
+                config={config}
+                onConfigChange={handleConfigChange}
+                onSave={handleSave}
+                loading={loading}
+              />
+            </div>
+          )}
         </div>
       ) : (
         // 查看模式：全屏显示
