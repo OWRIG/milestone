@@ -11,23 +11,28 @@
     .config-layout {
       display: flex;
       height: 100%;
+      position: relative;
       
       .timeline-preview {
         flex: 1;
         height: 100%;
         overflow: hidden;
         background-color: var(--semi-color-bg-0);
-        border-right: 1px solid var(--semi-color-border);
+        width: calc(100% - 350px); // 确保占用除配置面板外的全部空间
       }
       
       .config-panel-wrapper {
+        position: fixed;
+        right: 0;
+        top: 0;
         width: 350px;
-        min-width: 350px;
-        height: 100%;
+        height: 100vh;
         background-color: var(--semi-color-bg-1);
         overflow-y: auto;
         pointer-events: auto;
-        position: relative;
+        border-left: 1px solid var(--semi-color-border);
+        z-index: 100;
+        box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
       }
     }
   }

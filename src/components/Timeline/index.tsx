@@ -204,7 +204,7 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
               milestones={milestones}
               config={config}
               containerSize={{
-                width: containerSize.width - 350,
+                width: containerSize.width - 350, // 减去固定配置面板宽度
                 height: containerSize.height
               }}
             />
