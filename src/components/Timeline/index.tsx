@@ -70,37 +70,14 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
     setError('');
     try {
       const dataManager = new TimelineDataManager(configToUse, modeToUse);
-      
-      // 根据模式决定使用哪种数据加载方式
-      let data: MilestoneData[];
-      
-      if (modeToUse === DashboardMode.View || modeToUse === DashboardMode.FullScreen) {
-        // 展示模式：必须有保存的配置才能加载数据
-        try {
-          data = await dataManager.loadTimelineData();
-        } catch (error) {
-          setError('无法加载数据，请检查配置。');
-          data = [];
-        }
-      } else {
-        // 创建/配置模式：如果没有配置表格，使用 mock 数据；否则使用 getPreviewData
-        if (!configToUse.tableId) {
-          const dataManager = new TimelineDataManager(configToUse, modeToUse);
-          data = (dataManager as any).getMockData();
-        } else {
-          try {
-            data = await dataManager.loadTimelineData();
-          } catch (error) {
-            console.warn('配置模式数据加载失败，使用 mock 数据:', error);
-            const mockDataManager = new TimelineDataManager(configToUse, modeToUse);
-            data = (mockDataManager as any).getMockData();
-          }
-        }
-      }
-      
+      const data = await dataManager.loadTimelineData();
       setMilestones(data);
-    } catch (error) {
-      setError('加载数据失败，请重试。');
+      if (data.length === 0 && configToUse.tableId) {
+        setError('未找到符合条件的数据，请检查表格内容或配置。');
+      }
+    } catch (error: any) {
+      console.error('加载数据时发生未知错误:', error);
+      setError(error.message || '加载数据失败，请重试。');
       setMilestones([]);
     } finally {
       setLoading(false);

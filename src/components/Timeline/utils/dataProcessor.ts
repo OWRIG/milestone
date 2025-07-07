@@ -2,14 +2,7 @@ import { bitable, FieldType, dashboard } from '@lark-base-open/js-sdk';
 import type { IDataCondition } from '@lark-base-open/js-sdk';
 import { MilestoneData, STimelineConfig, DashboardMode } from '../types';
 
-// Dashboard API类型定义
-type IDataItem = {
-  value: string | number | null;
-  text: string | null;
-  groupKey?: string;
-};
 
-type IData = IDataItem[][];
 
 // 时间线数据管理器
 export class TimelineDataManager {
@@ -26,10 +19,14 @@ export class TimelineDataManager {
     try {
       const dataConditions = {
         tableId: this.config.tableId,
-        dataRange: { type: 'ALL' },
-        groups: this.config.dateField ? [{ fieldId: this.config.dateField }] : [],
-        series: this.config.titleField ? [{ fieldId: this.config.titleField, rollup: 'COUNTA' }] : 'COUNTA'
-      } as any;
+        // 关键修正：直接提供字段ID列表，而不是使用聚合配置
+        fieldIds: [
+          this.config.dateField,
+          this.config.titleField,
+          this.config.descField,
+          this.config.statusField
+        ].filter(Boolean) // 使用 filter(Boolean) 优雅地移除未配置的空值字段
+      };
       
       const configToSave = {
         dataConditions: [dataConditions],
@@ -51,25 +48,35 @@ export class TimelineDataManager {
       // 检查是否在仪表盘环境中
       if (typeof dashboard !== 'undefined') {
         if (this.mode === DashboardMode.Config) {
-          // 配置模式：使用预览数据
+          // 配置模式：使用当前配置构建条件
           const dataConditions = {
             tableId: this.config.tableId,
-            dataRange: { type: 'ALL' },
-            groups: this.config.dateField ? [{ fieldId: this.config.dateField }] : [],
-            series: this.config.titleField ? [{ fieldId: this.config.titleField, rollup: 'COUNTA' }] : 'COUNTA'
-          } as any;
+            fieldIds: [
+              this.config.dateField,
+              this.config.titleField,
+              this.config.descField,
+              this.config.statusField
+            ].filter(Boolean)
+          };
           console.log('获取预览数据，条件:', dataConditions);
           rawData = await dashboard.getPreviewData(dataConditions);
           console.log('预览数据结果:', rawData);
         } else {
-          // 查看模式：使用完整数据
+          // 查看模式：无参数调用
           console.log('获取完整数据');
           rawData = await dashboard.getData();
           console.log('完整数据结果:', rawData);
+          console.log('完整数据类型:', typeof rawData, Array.isArray(rawData));
+          if (rawData && Array.isArray(rawData)) {
+            console.log('数据长度:', rawData.length);
+            if (rawData.length > 0) {
+              console.log('第一行数据:', rawData[0]);
+            }
+          }
         }
         
         // 处理获取到的数据
-        return this.processRawData(rawData);
+        return await this.processRawData(rawData);
       } else {
         // 降级到直接表格访问
         return this.loadDataFromTable();
@@ -82,74 +89,95 @@ export class TimelineDataManager {
   }
   
   // 处理从 Dashboard API 获取的数据
-  private processRawData(rawData: IData): MilestoneData[] {
-    const milestones: MilestoneData[] = [];
+  private async processRawData(rawData: any[]): Promise<MilestoneData[]> {
+    console.log('processRawData 开始处理数据');
+    console.log('当前配置:', this.config);
+    console.log('原始数据:', rawData);
     
     if (!Array.isArray(rawData)) {
-      console.warn('Dashboard API 返回的数据格式不正确');
+      console.warn('Dashboard API 返回的数据格式不正确，期望一个数组。');
       return this.getMockData();
     }
-    
-    // Dashboard API 返回的是二维数组格式，需要转换为时间线数据
-    // 第一行是表头，后续行是数据
-    if (rawData.length <= 1) {
-      console.warn('Dashboard API 返回的数据为空');
-      return this.getMockData();
-    }
-    
-    const headers = rawData[0];
-    const dataRows = rawData.slice(1);
-    
-    dataRows.forEach((row, index) => {
+
+    const milestones: MilestoneData[] = [];
+
+    for (const record of rawData) {
+      if (!record || !record.fields) continue;
+
       try {
-        // 根据配置的字段映射提取数据
-        const dateFieldIndex = headers.findIndex((h: IDataItem) => h.value === this.config.dateField);
-        const titleFieldIndex = headers.findIndex((h: IDataItem) => h.value === this.config.titleField);
-        const descFieldIndex = this.config.descField ? headers.findIndex((h: IDataItem) => h.value === this.config.descField) : -1;
-        const statusFieldIndex = this.config.statusField ? headers.findIndex((h: IDataItem) => h.value === this.config.statusField) : -1;
-        
-        if (dateFieldIndex >= 0 && titleFieldIndex >= 0 && row[dateFieldIndex] && row[titleFieldIndex]) {
-          const dateValue = row[dateFieldIndex].value;
-          const titleValue = row[titleFieldIndex];
-          
-          // Dashboard API 返回的数据结构：使用 text 字段作为显示文本
-          const title = titleValue && titleValue.text ? titleValue.text : String(titleValue.value || '');
-          if (!title) return;
-          
-          // 安全地处理日期字段
-          const date = new Date(dateValue as any);
-          if (isNaN(date.getTime())) return;
-          
-          // 安全地处理描述字段
-          const description = descFieldIndex >= 0 && row[descFieldIndex] ? 
-            (row[descFieldIndex].text || String(row[descFieldIndex].value || '')) : undefined;
-          
-          // 安全地处理状态字段
-          const statusItem = statusFieldIndex >= 0 && row[statusFieldIndex] ? row[statusFieldIndex] : null;
-          const status = statusItem ? (statusItem.text || String(statusItem.value || 'pending')) : 'pending';
-          
-          milestones.push({
-            id: `milestone_${index}`,
-            date,
-            title,
-            description,
-            status: status as any,
-            completed: status === 'completed' || status === '已完成',
-            x: 0,
-            y: 0
-          });
+        const { fields } = record;
+
+        // --- 安全地获取标题 (处理对象、数组和字符串) ---
+        const titleCell = fields[this.config.titleField];
+        let titleValue = '';
+        if (Array.isArray(titleCell)) {
+          titleValue = titleCell.map(item => item.text || '').join(', ');
+        } else if (typeof titleCell === 'object' && titleCell !== null && 'text' in titleCell) {
+          titleValue = titleCell.text;
+        } else if (titleCell) {
+          titleValue = String(titleCell);
         }
+
+        // --- 安全地获取日期 ---
+        const dateCell = fields[this.config.dateField];
+        if (!dateCell || !titleValue) continue; // 必须有日期和标题
+
+        const dateValue = new Date(dateCell);
+        if (isNaN(dateValue.getTime())) continue; // 过滤无效日期
+
+        // --- 安全地获取描述 ---
+        const descCell = this.config.descField ? fields[this.config.descField] : null;
+        let descriptionValue: string | undefined = undefined;
+        if (descCell) {
+          if (Array.isArray(descCell)) {
+            descriptionValue = descCell.map(item => item.text || '').join(', ');
+          } else if (typeof descCell === 'object' && descCell !== null && 'text' in descCell) {
+            descriptionValue = descCell.text;
+          } else {
+            descriptionValue = String(descCell);
+          }
+        }
+
+        // --- 安全地获取状态 ---
+        const statusCell = this.config.statusField ? fields[this.config.statusField] : null;
+        let statusValue = 'pending';
+        if (statusCell) {
+           if (Array.isArray(statusCell)) {
+            statusValue = statusCell.map(item => item.text || '').join(', ') || 'pending';
+          } else if (typeof statusCell === 'object' && statusCell !== null && 'text' in statusCell) {
+            statusValue = statusCell.text || 'pending';
+          } else {
+            statusValue = String(statusCell);
+          }
+        }
+        
+        milestones.push({
+          id: record.recordId || `milestone_${Date.now()}`,
+          date: dateValue,
+          title: titleValue,
+          description: descriptionValue,
+          status: statusValue as any,
+          completed: statusValue.toLowerCase() === 'completed' || statusValue === '已完成',
+          x: 0,
+          y: 0
+        });
+
       } catch (error) {
-        console.warn(`处理记录 ${index} 时出错:`, error);
+        console.warn(`处理单条记录失败:`, { record, error });
       }
-    });
-    
-    // 如果没有获取到有效数据，返回模拟数据
-    if (milestones.length === 0) {
-      return this.getMockData();
+    }
+
+    if (milestones.length === 0 && rawData.length > 0) {
+      console.warn("成功获取数据但未能解析出任何里程碑，请检查字段配置。");
+      return []; // 返回空数组而不是模拟数据，以便UI显示空状态
     }
     
-    // 按日期排序并应用时间过滤
+    if (milestones.length === 0) {
+       return this.getMockData();
+    }
+
+    console.log('成功处理的里程碑数据:', milestones);
+    
     return this.applyTimeFilter(milestones.sort((a, b) => a.date.getTime() - b.date.getTime()));
   }
   
