@@ -62,10 +62,31 @@ export class TimelineDataManager {
           rawData = await dashboard.getPreviewData(dataConditions);
           console.log('预览数据结果:', rawData);
         } else {
-          // 查看模式：无参数调用
+          // 查看模式：尝试使用相同的逻辑，重建 dataConditions
           console.log('获取完整数据');
+          
+          // 尝试无参数调用（官方推荐方式）
           rawData = await dashboard.getData();
-          console.log('完整数据结果:', rawData);
+          console.log('无参数 getData() 结果:', rawData);
+          
+          // 如果无参数调用失败或返回空数据，尝试重建条件
+          if (!rawData || !Array.isArray(rawData) || rawData.length <= 1) {
+            console.log('无参数调用失败，尝试重建 dataConditions');
+            const dataConditions = {
+              tableId: this.config.tableId,
+              fieldIds: [
+                this.config.dateField,
+                this.config.titleField,
+                this.config.descField,
+                this.config.statusField
+              ].filter(Boolean)
+            };
+            console.log('重建的条件:', dataConditions);
+            rawData = await dashboard.getPreviewData(dataConditions);
+            console.log('重建条件后的数据:', rawData);
+          }
+          
+          console.log('最终完整数据结果:', rawData);
           console.log('完整数据类型:', typeof rawData, Array.isArray(rawData));
           if (rawData && Array.isArray(rawData)) {
             console.log('数据长度:', rawData.length);
@@ -101,58 +122,79 @@ export class TimelineDataManager {
 
     const milestones: MilestoneData[] = [];
 
-    for (const record of rawData) {
-      if (!record || !record.fields) continue;
+    // Dashboard API 返回的是二维数组格式：[[headers], [row1], [row2], ...]
+    if (rawData.length < 2) {
+      console.warn('Dashboard API 返回的数据为空或只有表头');
+      return this.getMockData();
+    }
+
+    const headers = rawData[0]; // 第一行是表头
+    const dataRows = rawData.slice(1); // 后续行是数据
+
+    console.log('表头:', headers);
+    console.log('数据行数:', dataRows.length);
+
+    // 找到字段在表头中的索引
+    const dateFieldIndex = headers.findIndex((h: any) => h.value === this.config.dateField);
+    const titleFieldIndex = headers.findIndex((h: any) => h.value === this.config.titleField);
+    const descFieldIndex = this.config.descField ? headers.findIndex((h: any) => h.value === this.config.descField) : -1;
+    const statusFieldIndex = this.config.statusField ? headers.findIndex((h: any) => h.value === this.config.statusField) : -1;
+
+    console.log('字段索引:', {
+      dateFieldIndex,
+      titleFieldIndex,
+      descFieldIndex,
+      statusFieldIndex
+    });
+
+    for (let i = 0; i < dataRows.length; i++) {
+      const row = dataRows[i];
+      console.log(`处理第 ${i} 行数据:`, row);
 
       try {
-        const { fields } = record;
-
-        // --- 安全地获取标题 (处理对象、数组和字符串) ---
-        const titleCell = fields[this.config.titleField];
-        let titleValue = '';
-        if (Array.isArray(titleCell)) {
-          titleValue = titleCell.map(item => item.text || '').join(', ');
-        } else if (typeof titleCell === 'object' && titleCell !== null && 'text' in titleCell) {
-          titleValue = titleCell.text;
-        } else if (titleCell) {
-          titleValue = String(titleCell);
+        // 检查必要字段是否存在
+        if (dateFieldIndex < 0 || titleFieldIndex < 0) {
+          console.warn('缺少必要字段索引');
+          continue;
         }
 
-        // --- 安全地获取日期 ---
-        const dateCell = fields[this.config.dateField];
-        if (!dateCell || !titleValue) continue; // 必须有日期和标题
+        if (!row[dateFieldIndex] || !row[titleFieldIndex]) {
+          console.warn('行数据缺少必要字段值');
+          continue;
+        }
 
-        const dateValue = new Date(dateCell);
-        if (isNaN(dateValue.getTime())) continue; // 过滤无效日期
+        // 获取日期
+        const dateCell = row[dateFieldIndex];
+        const dateValue = new Date(dateCell.value || dateCell);
+        if (isNaN(dateValue.getTime())) {
+          console.warn('无效日期:', dateCell);
+          continue;
+        }
 
-        // --- 安全地获取描述 ---
-        const descCell = this.config.descField ? fields[this.config.descField] : null;
+        // 获取标题
+        const titleCell = row[titleFieldIndex];
+        const titleValue = titleCell.text || titleCell.value || String(titleCell);
+        if (!titleValue) {
+          console.warn('无效标题:', titleCell);
+          continue;
+        }
+
+        // 获取描述
         let descriptionValue: string | undefined = undefined;
-        if (descCell) {
-          if (Array.isArray(descCell)) {
-            descriptionValue = descCell.map(item => item.text || '').join(', ');
-          } else if (typeof descCell === 'object' && descCell !== null && 'text' in descCell) {
-            descriptionValue = descCell.text;
-          } else {
-            descriptionValue = String(descCell);
-          }
+        if (descFieldIndex >= 0 && row[descFieldIndex]) {
+          const descCell = row[descFieldIndex];
+          descriptionValue = descCell.text || descCell.value || String(descCell);
         }
 
-        // --- 安全地获取状态 ---
-        const statusCell = this.config.statusField ? fields[this.config.statusField] : null;
+        // 获取状态
         let statusValue = 'pending';
-        if (statusCell) {
-           if (Array.isArray(statusCell)) {
-            statusValue = statusCell.map(item => item.text || '').join(', ') || 'pending';
-          } else if (typeof statusCell === 'object' && statusCell !== null && 'text' in statusCell) {
-            statusValue = statusCell.text || 'pending';
-          } else {
-            statusValue = String(statusCell);
-          }
+        if (statusFieldIndex >= 0 && row[statusFieldIndex]) {
+          const statusCell = row[statusFieldIndex];
+          statusValue = statusCell.text || statusCell.value || String(statusCell) || 'pending';
         }
-        
+
         milestones.push({
-          id: record.recordId || `milestone_${Date.now()}`,
+          id: `milestone_${i}`,
           date: dateValue,
           title: titleValue,
           description: descriptionValue,
@@ -162,12 +204,14 @@ export class TimelineDataManager {
           y: 0
         });
 
+        console.log(`成功处理第 ${i} 行，生成里程碑:`, milestones[milestones.length - 1]);
+
       } catch (error) {
-        console.warn(`处理单条记录失败:`, { record, error });
+        console.warn(`处理第 ${i} 行时出错:`, error, row);
       }
     }
 
-    if (milestones.length === 0 && rawData.length > 0) {
+    if (milestones.length === 0 && rawData.length > 1) {
       console.warn("成功获取数据但未能解析出任何里程碑，请检查字段配置。");
       return []; // 返回空数组而不是模拟数据，以便UI显示空状态
     }
