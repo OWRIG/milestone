@@ -41,11 +41,14 @@ const TimelineRenderer: React.FC<TimelineRendererProps> = ({
     
     try {
       // 更新算法配置
-      algorithm.current.setMinNodeSpacing(config.minNodeSpacing || 80);
-      algorithm.current.setRowHeight(120);
+      const minSpacing = config.minNodeSpacing || 120;
+      algorithm.current.setMinNodeSpacing(minSpacing);
+      algorithm.current.setMaxNodeSpacing(200);
+      algorithm.current.setRowHeight(140);
+      algorithm.current.setMaxNodesPerRow(6);
       
       // 计算横排S型路径
-      const calculatedMilestones = algorithm.current.calculateSPath(milestones, config.minNodeSpacing || 80);
+      const calculatedMilestones = algorithm.current.calculateSPath(milestones, minSpacing);
       setProcessedMilestones(calculatedMilestones);
       
       // 生成SVG路径
@@ -56,7 +59,7 @@ const TimelineRenderer: React.FC<TimelineRendererProps> = ({
       setPathData('');
       setProcessedMilestones([]);
     }
-  }, [milestones, config.minNodeSpacing]);
+  }, [milestones, config.minNodeSpacing, containerSize]);
   
   // 处理里程碑点击事件
   const handleMilestoneClick = (milestone: MilestoneData) => {
@@ -91,13 +94,18 @@ const TimelineRenderer: React.FC<TimelineRendererProps> = ({
     );
   }
   
+  // 计算动态高度
+  const dynamicHeight = processedMilestones.length > 0 
+    ? Math.max(containerSize.height, algorithm.current.calculateRequiredHeight(processedMilestones.length))
+    : containerSize.height;
+
   return (
     <div className={`s-timeline-renderer ${className}`}>
       <svg
         ref={svgRef}
         width={containerSize.width}
-        height={containerSize.height}
-        viewBox={`0 0 ${containerSize.width} ${containerSize.height}`}
+        height={dynamicHeight}
+        viewBox={`0 0 ${containerSize.width} ${dynamicHeight}`}
         className="s-timeline-svg"
       >
         {/* 定义渐变和滤镜 */}

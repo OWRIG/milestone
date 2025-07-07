@@ -116,7 +116,7 @@ const TimelineDashboard: React.FC<STimelineProps> = ({
         setState(prev => ({ ...prev, loading: true }));
         // 使用DataManager加载数据
         const data = await dataManagerRef.current.loadTimelineData();
-        const processedData = algorithmRef.current.calculateSPath(data, newConfig.minNodeSpacing || 80);
+        const processedData = algorithmRef.current.calculateSPath(data, newConfig.minNodeSpacing || 120);
         setState(prev => ({ ...prev, data: processedData }));
       } catch (error) {
         console.error('预览数据失败:', error);
@@ -212,9 +212,10 @@ const TimelineDashboard: React.FC<STimelineProps> = ({
   // 容器尺寸变化时更新算法
   useEffect(() => {
     algorithmRef.current.updateContainerSize(containerSize);
-    algorithmRef.current.setMinNodeSpacing(state.config.minNodeSpacing || 80);
+    algorithmRef.current.setMinNodeSpacing(state.config.minNodeSpacing || 120);
+    algorithmRef.current.setRowHeight(140);
     if (state.data.length > 0) {
-      const processedData = algorithmRef.current.calculateSPath(state.data, state.config.minNodeSpacing || 80);
+      const processedData = algorithmRef.current.calculateSPath(state.data, state.config.minNodeSpacing || 120);
       setState(prev => ({ ...prev, data: processedData }));
     }
   }, [containerSize, state.config.minNodeSpacing, state.data]);
@@ -239,14 +240,13 @@ const TimelineDashboard: React.FC<STimelineProps> = ({
     );
   }
   
-  // 根据模式渲染不同的布局
-  const isConfigMode = state.mode === DashboardMode.Config;
-  const showConfig = state.mode === DashboardMode.Create || state.mode === DashboardMode.Config;
+  // 根据模式渲柔不同的布局
+  const isCreateOrConfigMode = state.mode === DashboardMode.Create || state.mode === DashboardMode.Config;
   
   return (
     <div className={`s-timeline-dashboard mode-${state.mode}`}>
-      {isConfigMode ? (
-        // 配置模式：左右布局
+      {isCreateOrConfigMode ? (
+        // 创建/配置模式：左右布局，显示配置面板
         <div className="config-layout">
           <div className="config-panel-wrapper">
             <ConfigPanel 
@@ -268,22 +268,16 @@ const TimelineDashboard: React.FC<STimelineProps> = ({
             <TimelineRenderer 
               milestones={state.data}
               config={state.config}
-              containerSize={containerSize}
+              containerSize={{
+                width: containerSize.width - 340, // 减去配置面板宽度
+                height: containerSize.height
+              }}
             />
           </div>
         </div>
       ) : (
-        // 查看模式：全屏显示
+        // 查看/全屏模式：全屏显示，隐藏配置面板
         <div className="view-layout">
-          {showConfig && (
-            <div className="config-overlay">
-              <ConfigPanel 
-                config={state.config}
-                onConfigChange={handleConfigChange}
-                loading={state.loading}
-              />
-            </div>
-          )}
           <TimelineRenderer 
             milestones={state.data}
             config={state.config}
