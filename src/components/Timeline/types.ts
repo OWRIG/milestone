@@ -1,5 +1,7 @@
 // S型时间线插件类型定义
 
+// 使用SDK的类型定义
+
 export enum DashboardMode {
   Create = 'create',
   Config = 'config',
@@ -7,7 +9,7 @@ export enum DashboardMode {
   FullScreen = 'fullscreen'
 }
 
-export interface STimelineConfig {
+export interface STimelineConfig extends Record<string, unknown> {
   // 数据源配置
   tableId: string;
   viewId?: string;

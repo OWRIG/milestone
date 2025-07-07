@@ -10,7 +10,8 @@
       "Bash(mkdir:*)",
       "Bash(npm run build:*)",
       "Bash(rm:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": []
   }

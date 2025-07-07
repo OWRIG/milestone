@@ -141,14 +141,14 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
       // 构建数据条件
       const dataConditions = {
         tableId: config.tableId,
-        dataRange: { type: 'ALL' as const },
+        dataRange: { type: 'ALL' },
         groups: config.dateField ? [{ fieldId: config.dateField }] : [],
-        series: config.titleField ? [{ fieldId: config.titleField, rollup: 'COUNTA' as const }] : 'COUNTA' as const
-      };
+        series: config.titleField ? [{ fieldId: config.titleField, rollup: 'COUNTA' }] : 'COUNTA'
+      } as any;
 
       await dashboard.saveConfig({
-        customConfig: config,
-        dataConditions,
+        customConfig: config as Record<string, unknown>,
+        dataConditions: [dataConditions],
       });
       
       console.log('配置保存成功');

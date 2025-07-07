@@ -116,7 +116,7 @@ const TimelineDashboard: React.FC<STimelineProps> = ({
         setState(prev => ({ ...prev, loading: true }));
         // 使用DataManager加载数据
         const data = await dataManagerRef.current.loadTimelineData();
-        const processedData = algorithmRef.current.calculateSPath(data, newConfig.curveTension);
+        const processedData = algorithmRef.current.calculateSPath(data, newConfig.minNodeSpacing || 80);
         setState(prev => ({ ...prev, data: processedData }));
       } catch (error) {
         console.error('预览数据失败:', error);
@@ -212,11 +212,12 @@ const TimelineDashboard: React.FC<STimelineProps> = ({
   // 容器尺寸变化时更新算法
   useEffect(() => {
     algorithmRef.current.updateContainerSize(containerSize);
+    algorithmRef.current.setMinNodeSpacing(state.config.minNodeSpacing || 80);
     if (state.data.length > 0) {
-      const processedData = algorithmRef.current.calculateSPath(state.data, state.config.curveTension);
+      const processedData = algorithmRef.current.calculateSPath(state.data, state.config.minNodeSpacing || 80);
       setState(prev => ({ ...prev, data: processedData }));
     }
-  }, [containerSize, state.config.curveTension, state.data]);
+  }, [containerSize, state.config.minNodeSpacing, state.data]);
   
   // 渲染完成通知
   useEffect(() => {

@@ -1,138 +1,131 @@
-import { line, curveBasis } from 'd3-shape';
 import { MilestoneData, ContainerSize } from '../types';
 
-// S型时间线算法实现
+// 横排S型时间线算法实现（自动换行）
 export class STimelineAlgorithm {
   private containerSize: ContainerSize;
-  private margin = { top: 60, bottom: 60, left: 120, right: 120 };
+  private margin = { top: 80, bottom: 120, left: 40, right: 40 };
+  private rowHeight = 120; // 每行高度，为信息卡片预留空间
+  private minNodeSpacing = 80; // 节点最小间距
   
   constructor(containerSize: ContainerSize) {
     this.containerSize = containerSize;
   }
   
-  // 计算 S 型路径位置
-  calculateSPath(milestones: MilestoneData[], curveTension: number = 0.5): MilestoneData[] {
-    if (milestones.length === 0) return [];
-    
-    const { width, height } = this.containerSize;
-    const drawWidth = width - this.margin.left - this.margin.right;
-    const drawHeight = height - this.margin.top - this.margin.bottom;
-    
-    // 使用正弦波函数创建平滑的 S 型曲线
-    const positions = milestones.map((milestone, index) => {
-      const progress = milestones.length === 1 ? 0.5 : index / (milestones.length - 1);
-      
-      // 使用正弦波函数生成平滑的 S 型横坐标
-      const sineValue = Math.sin(progress * Math.PI * 2 * curveTension); // 控制 S 型强度
-      const normalizedSine = (sineValue + 1) / 2; // 归一化到 0-1
-      
-      // 横坐标：在左右边界之间振荡
-      const x = this.margin.left + normalizedSine * drawWidth;
-      
-      // 纵坐标：按时间序列均匀分布
-      const y = this.margin.top + progress * drawHeight;
-      
-      return {
-        ...milestone,
-        x,
-        y
-      };
-    });
-    
-    return positions;
-  }
-  
-  // 生成 SVG 路径字符串
-  generateSVGPath(positions: MilestoneData[]): string {
-    if (positions.length < 2) {
-      return positions.length === 1 
-        ? `M ${positions[0].x} ${positions[0].y}` 
-        : '';
+  // 计算横排S型路径（左右交替，自动换行）
+  calculateSPath(milestones: MilestoneData[], minNodeSpacing: number = 80): MilestoneData[] {
+    if (!milestones || milestones.length === 0) {
+      return [];
     }
     
-    // 使用 d3-shape 生成平滑的贝塞尔曲线
-    const lineGenerator = line<{ x: number; y: number }>()
-      .x(d => d.x)
-      .y(d => d.y)
-      .curve(curveBasis); // 使用 B 样条曲线插值
+    const processedMilestones = [...milestones];
+    const drawWidth = this.containerSize.width - this.margin.left - this.margin.right;
+    this.minNodeSpacing = minNodeSpacing;
     
-    return lineGenerator(positions.map(p => ({ x: p.x, y: p.y }))) || '';
-  }
-  
-  // 高级版本：自适应 S 型曲线
-  calculateAdaptiveSPath(milestones: MilestoneData[], config: {
-    curveTension: number;
-    adaptToContent: boolean;
-    minSpacing: number;
-  }): MilestoneData[] {
-    if (milestones.length === 0) return [];
+    // 按日期排序确保时间顺序
+    processedMilestones.sort((a, b) => a.date.getTime() - b.date.getTime());
     
-    const { width, height } = this.containerSize;
-    const drawWidth = width - this.margin.left - this.margin.right;
-    const drawHeight = height - this.margin.top - this.margin.bottom;
+    // 计算每行可容纳的节点数
+    const nodesPerRow = Math.floor(drawWidth / this.minNodeSpacing) || 1;
     
-    // 计算时间距离权重
-    const timeSpans = this.calculateTimeSpans(milestones);
-    
-    const positions = milestones.map((milestone, index) => {
-      // 基于时间权重计算 Y 位置
-      const timeProgress = config.adaptToContent 
-        ? timeSpans[index]
-        : index / (milestones.length - 1);
+    // 为每个里程碑计算位置
+    processedMilestones.forEach((milestone, index) => {
+      const rowIndex = Math.floor(index / nodesPerRow);
+      const colIndex = index % nodesPerRow;
+      const isEvenRow = rowIndex % 2 === 0;
       
-      // 动态调整 S 型幅度
-      const adaptiveAmplitude = Math.min(drawWidth * 0.4, drawWidth / Math.sqrt(milestones.length));
-      const sineValue = Math.sin(timeProgress * Math.PI * 2 * config.curveTension);
+      // 计算在当前行中的实际列位置（奇数行从右往左）
+      const actualColIndex = isEvenRow ? colIndex : (nodesPerRow - 1 - colIndex);
       
-      const x = this.margin.left + drawWidth / 2 + sineValue * adaptiveAmplitude;
-      const y = this.margin.top + timeProgress * drawHeight;
+      // 计算节点间的实际间距（均匀分布）
+      const actualSpacing = nodesPerRow > 1 ? drawWidth / (nodesPerRow - 1) : 0;
       
-      return {
-        ...milestone,
-        x,
-        y
-      };
+      // 设置坐标
+      milestone.x = this.margin.left + (actualColIndex * actualSpacing);
+      milestone.y = this.margin.top + (rowIndex * this.rowHeight);
     });
     
-    // 确保最小间距
-    return this.enforceMinimumSpacing(positions, config.minSpacing);
+    return processedMilestones;
   }
   
-  // 计算时间权重
-  private calculateTimeSpans(milestones: MilestoneData[]): number[] {
-    if (milestones.length <= 1) return [0];
-    
-    const timeStamps = milestones.map(m => m.date.getTime());
-    const totalTime = timeStamps[timeStamps.length - 1] - timeStamps[0];
-    
-    if (totalTime === 0) {
-      // 如果所有时间戳相同，均匀分布
-      return milestones.map((_, index) => index / (milestones.length - 1));
+  // 生成连接路径的SVG路径字符串
+  generateSVGPath(milestones: MilestoneData[]): string {
+    if (!milestones || milestones.length < 2) {
+      return '';
     }
     
-    return timeStamps.map(time => (time - timeStamps[0]) / totalTime);
-  }
-  
-  // 确保最小间距
-  private enforceMinimumSpacing(positions: MilestoneData[], minSpacing: number): MilestoneData[] {
-    for (let i = 1; i < positions.length; i++) {
-      const prev = positions[i - 1];
-      const curr = positions[i];
-      const distance = Math.sqrt(Math.pow(curr.x - prev.x, 2) + Math.pow(curr.y - prev.y, 2));
+    let pathData = '';
+    const nodesPerRow = this.getNodesPerRow();
+    
+    for (let i = 0; i < milestones.length - 1; i++) {
+      const current = milestones[i];
+      const next = milestones[i + 1];
       
-      if (distance < minSpacing) {
-        // 调整位置以维持最小间距
-        const angle = Math.atan2(curr.y - prev.y, curr.x - prev.x);
-        positions[i].x = prev.x + Math.cos(angle) * minSpacing;
-        positions[i].y = prev.y + Math.sin(angle) * minSpacing;
+      if (i === 0) {
+        pathData += `M ${current.x} ${current.y}`;
+      }
+      
+      // 检查是否需要绘制S型转折
+      const currentRow = Math.floor(i / nodesPerRow);
+      const nextRow = Math.floor((i + 1) / nodesPerRow);
+      
+      if (currentRow === nextRow) {
+        // 同一行，直线连接
+        pathData += ` L ${next.x} ${next.y}`;
+      } else {
+        // 不同行，绘制S型转折
+        const midY = current.y + (next.y - current.y) / 2;
+        pathData += ` Q ${current.x} ${midY} ${next.x} ${next.y}`;
       }
     }
     
-    return positions;
+    return pathData;
+  }
+  
+  // 获取每行节点数
+  private getNodesPerRow(): number {
+    const drawWidth = this.containerSize.width - this.margin.left - this.margin.right;
+    return Math.floor(drawWidth / this.minNodeSpacing) || 1;
+  }
+  
+  // 计算动态容器高度
+  calculateRequiredHeight(milestoneCount: number): number {
+    const nodesPerRow = this.getNodesPerRow();
+    const totalRows = Math.ceil(milestoneCount / nodesPerRow);
+    return this.margin.top + this.margin.bottom + (totalRows * this.rowHeight);
+  }
+  
+  // 获取节点行列信息
+  getNodePosition(index: number): { row: number; col: number; isRightToLeft: boolean } {
+    const nodesPerRow = this.getNodesPerRow();
+    const row = Math.floor(index / nodesPerRow);
+    const col = index % nodesPerRow;
+    const isRightToLeft = row % 2 === 1;
+    
+    return { row, col, isRightToLeft };
+  }
+  
+  // 设置行高
+  setRowHeight(height: number): void {
+    this.rowHeight = height;
+  }
+  
+  // 设置最小节点间距
+  setMinNodeSpacing(spacing: number): void {
+    this.minNodeSpacing = spacing;
   }
   
   // 更新容器尺寸
   updateContainerSize(containerSize: ContainerSize): void {
     this.containerSize = containerSize;
+  }
+  
+  // 获取当前配置
+  getConfig() {
+    return {
+      containerSize: this.containerSize,
+      margin: this.margin,
+      rowHeight: this.rowHeight,
+      minNodeSpacing: this.minNodeSpacing
+    };
   }
 }

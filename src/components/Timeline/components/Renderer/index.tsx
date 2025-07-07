@@ -31,7 +31,7 @@ const TimelineRenderer: React.FC<TimelineRendererProps> = ({
     algorithm.current.updateContainerSize(containerSize);
   }, [containerSize]);
   
-  // 计算S型路径和节点位置
+  // 计算横排S型路径和节点位置
   useEffect(() => {
     if (milestones.length === 0) {
       setPathData('');
@@ -40,19 +40,23 @@ const TimelineRenderer: React.FC<TimelineRendererProps> = ({
     }
     
     try {
-      // 计算S型路径
-      const calculatedMilestones = algorithm.current.calculateSPath(milestones, config.curveTension);
+      // 更新算法配置
+      algorithm.current.setMinNodeSpacing(config.minNodeSpacing || 80);
+      algorithm.current.setRowHeight(120);
+      
+      // 计算横排S型路径
+      const calculatedMilestones = algorithm.current.calculateSPath(milestones, config.minNodeSpacing || 80);
       setProcessedMilestones(calculatedMilestones);
       
       // 生成SVG路径
       const path = algorithm.current.generateSVGPath(calculatedMilestones);
       setPathData(path);
     } catch (error) {
-      console.error('计算S型路径失败:', error);
+      console.error('计算横排S型路径失败:', error);
       setPathData('');
       setProcessedMilestones([]);
     }
-  }, [milestones, config.curveTension]);
+  }, [milestones, config.minNodeSpacing]);
   
   // 处理里程碑点击事件
   const handleMilestoneClick = (milestone: MilestoneData) => {

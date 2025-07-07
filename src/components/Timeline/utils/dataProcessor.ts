@@ -1,4 +1,5 @@
 import { bitable, FieldType, dashboard } from '@lark-base-open/js-sdk';
+import type { IDataCondition } from '@lark-base-open/js-sdk';
 import { MilestoneData, STimelineConfig, DashboardMode } from '../types';
 
 // Dashboard API类型定义
@@ -25,14 +26,14 @@ export class TimelineDataManager {
     try {
       const dataConditions = {
         tableId: this.config.tableId,
-        dataRange: { type: 'ALL' as const },
+        dataRange: { type: 'ALL' },
         groups: this.config.dateField ? [{ fieldId: this.config.dateField }] : [],
-        series: this.config.titleField ? [{ fieldId: this.config.titleField, rollup: 'COUNTA' as const }] : 'COUNTA' as const
-      };
+        series: this.config.titleField ? [{ fieldId: this.config.titleField, rollup: 'COUNTA' }] : 'COUNTA'
+      } as any;
       
       const configToSave = {
-        dataConditions,
-        customConfig: this.config
+        dataConditions: [dataConditions],
+        customConfig: this.config as Record<string, unknown>
       };
       
       return await dashboard.saveConfig(configToSave) || false;
@@ -53,10 +54,10 @@ export class TimelineDataManager {
           // 配置模式：使用预览数据
           const dataConditions = {
             tableId: this.config.tableId,
-            dataRange: { type: 'ALL' as const },
+            dataRange: { type: 'ALL' },
             groups: this.config.dateField ? [{ fieldId: this.config.dateField }] : [],
-            series: this.config.titleField ? [{ fieldId: this.config.titleField, rollup: 'COUNTA' as const }] : 'COUNTA' as const
-          };
+            series: this.config.titleField ? [{ fieldId: this.config.titleField, rollup: 'COUNTA' }] : 'COUNTA'
+          } as any;
           rawData = await dashboard.getPreviewData(dataConditions);
         } else {
           // 查看模式：使用完整数据

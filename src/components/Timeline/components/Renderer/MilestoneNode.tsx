@@ -16,80 +16,59 @@ const MilestoneNode: React.FC<MilestoneNodeProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   
-  // 判断是否已完成
-  const isCompleted = milestone.completed || milestone.date < new Date();
-  
-  // 根据索引选择颜色（参考图片的彩色设计）
-  const getNodeColors = () => {
-    const colors = [
-      { bg: '#4CAF50', center: '#2E7D32' }, // 绿色
-      { bg: '#00BCD4', center: '#006064' }, // 青色  
-      { bg: '#2196F3', center: '#0D47A1' }, // 蓝色
-      { bg: '#E91E63', center: '#880E4F' }, // 粉色
-      { bg: '#FF9800', center: '#E65100' }, // 橙色
-      { bg: '#FFEB3B', center: '#F57F17' }, // 黄色
-      { bg: '#9C27B0', center: '#4A148C' }, // 紫色
-      { bg: '#795548', center: '#3E2723' }, // 棕色
-    ];
-    
-    if (isCompleted) {
-      return { bg: config.completedColor, center: '#2E7D32' };
+  // 根据状态确定颜色：绿色(完成) - 黄色(进行中) - 红色(未开始)
+  const getStatusColor = () => {
+    if (milestone.completed || milestone.status === 'completed') {
+      return '#4CAF50'; // 绿色 - 完成
+    } else if (milestone.status === 'in-progress') {
+      return '#FFC107'; // 黄色 - 进行中  
+    } else {
+      return '#F44336'; // 红色 - 未开始
     }
-    
-    return colors[index % colors.length];
   };
   
-  // 格式化日期显示（简化格式）
+  // 获取较深的中心颜色
+  const getCenterColor = (baseColor: string) => {
+    const colorMap: { [key: string]: string } = {
+      '#4CAF50': '#2E7D32', // 深绿色
+      '#FFC107': '#F57C00', // 深黄色
+      '#F44336': '#C62828'  // 深红色
+    };
+    return colorMap[baseColor] || '#666666';
+  };
+  
+  // 格式化日期显示
   const formatDate = (date: Date) => {
     const month = date.getMonth() + 1;
     const day = date.getDate();
     return `${month}.${day}`;
   };
   
-  // 计算布局位置
-  const nodeRadius = config.nodeSize;
-  const isEven = index % 2 === 0;
-  const textBoxOffset = 50; // 文本框与节点的距离
-  const textBoxY = milestone.y + (isEven ? textBoxOffset : -textBoxOffset);
-  const dateY = milestone.y - 25; // 日期在节点上方
+  const statusColor = getStatusColor();
+  const centerColor = getCenterColor(statusColor);
+  const nodeRadius = config.nodeSize || 16;
   
-  const colors = getNodeColors();
+  // 信息卡片固定在节点下方
+  const cardY = milestone.y + 40;
+  const cardWidth = 160;
+  const cardHeight = config.showDescription && milestone.description ? 50 : 30;
   
-  // 处理鼠标事件（修复抖动问题）
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-  };
-  
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-  };
-  
-  const handleClick = () => {
-    onClick(milestone);
-  };
+  // 处理鼠标事件
+  const handleMouseEnter = () => setIsHovered(true);
+  const handleMouseLeave = () => setIsHovered(false);
+  const handleClick = () => onClick(milestone);
   
   return (
     <g className="milestone-node">
-      {/* 连接线：从节点到文本框 */}
-      <line
-        x1={milestone.x}
-        y1={milestone.y}
-        x2={milestone.x}
-        y2={textBoxY - (isEven ? 20 : -20)}
-        stroke={colors.bg}
-        strokeWidth="2"
-        className="connection-line"
-      />
-      
       {/* 日期显示（在节点上方） */}
       <text
         x={milestone.x}
-        y={dateY}
+        y={milestone.y - 25}
         textAnchor="middle"
         className="milestone-date"
-        fill="var(--semi-color-text-0)"
-        fontSize="16"
-        fontWeight="700"
+        fill="var(--semi-color-text-1)"
+        fontSize="14"
+        fontWeight="600"
       >
         {formatDate(milestone.date)}
       </text>
@@ -99,13 +78,13 @@ const MilestoneNode: React.FC<MilestoneNodeProps> = ({
         cx={milestone.x}
         cy={milestone.y}
         r={nodeRadius}
-        fill={colors.bg}
+        fill={statusColor}
         stroke="#ffffff"
         strokeWidth="3"
         className="milestone-circle"
         style={{
           cursor: 'pointer',
-          filter: isHovered ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))' : 'none',
+          filter: isHovered ? 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))' : 'drop-shadow(0 2px 6px rgba(0,0,0,0.1))',
           transition: 'filter 0.2s ease'
         }}
         onClick={handleClick}
@@ -118,26 +97,26 @@ const MilestoneNode: React.FC<MilestoneNodeProps> = ({
         cx={milestone.x}
         cy={milestone.y}
         r="4"
-        fill={colors.center}
+        fill={centerColor}
         className="milestone-center"
         style={{ pointerEvents: 'none' }}
       />
       
-      {/* 文本框背景 */}
+      {/* 信息卡片背景 - 固定在节点下方 */}
       <rect
-        x={milestone.x - 80}
-        y={textBoxY - 20}
-        width="160"
-        height="40"
-        rx="20"
-        ry="20"
+        x={milestone.x - cardWidth / 2}
+        y={cardY}
+        width={cardWidth}
+        height={cardHeight}
+        rx="8"
+        ry="8"
         fill="white"
-        stroke={colors.bg}
+        stroke={statusColor}
         strokeWidth="2"
-        className="text-box"
+        className="info-card"
         style={{
           cursor: 'pointer',
-          filter: isHovered ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' : 'none',
+          filter: isHovered ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
           transition: 'filter 0.2s ease'
         }}
         onClick={handleClick}
@@ -148,7 +127,7 @@ const MilestoneNode: React.FC<MilestoneNodeProps> = ({
       {/* 标题文本 */}
       <text
         x={milestone.x}
-        y={textBoxY - 4}
+        y={cardY + 18}
         textAnchor="middle"
         className="milestone-title"
         fill="var(--semi-color-text-0)"
@@ -156,72 +135,44 @@ const MilestoneNode: React.FC<MilestoneNodeProps> = ({
         fontWeight="500"
         style={{ pointerEvents: 'none' }}
       >
-        {milestone.title.length > 18 
-          ? milestone.title.substring(0, 18) + '...' 
+        {milestone.title.length > 20 
+          ? milestone.title.substring(0, 20) + '...' 
           : milestone.title}
       </text>
       
-      {/* 描述文本 */}
+      {/* 描述文本（如果启用且存在） */}
       {config.showDescription && milestone.description && (
         <text
           x={milestone.x}
-          y={textBoxY + 8}
+          y={cardY + 35}
           textAnchor="middle"
           className="milestone-description"
           fill="var(--semi-color-text-2)"
           fontSize="11"
           style={{ pointerEvents: 'none' }}
         >
-          {milestone.description.length > 20 
-            ? milestone.description.substring(0, 20) + '...' 
+          {milestone.description.length > 24 
+            ? milestone.description.substring(0, 24) + '...' 
             : milestone.description}
         </text>
       )}
       
-      {/* 状态标签（如果存在） */}
-      {milestone.status && milestone.status !== 'pending' && (
-        <g className="status-badge">
-          <rect
-            x={milestone.x + 25}
-            y={milestone.y - 35}
-            width={milestone.status === 'completed' ? '60' : '45'}
-            height="20"
-            rx="10"
-            ry="10"
-            fill={milestone.status === 'completed' ? '#4CAF50' : '#2196F3'}
-            className="status-bg"
-          />
-          <text
-            x={milestone.x + (milestone.status === 'completed' ? 55 : 47.5)}
-            y={milestone.y - 22}
-            textAnchor="middle"
-            fill="white"
-            fontSize="11"
-            fontWeight="600"
-            style={{ pointerEvents: 'none' }}
-          >
-            {milestone.status === 'completed' ? '已完成' : 
-             milestone.status === 'in-progress' ? '进行中' : milestone.status}
-          </text>
-        </g>
-      )}
-      
-      {/* 悬停工具提示（简化版） */}
-      {isHovered && milestone.description && (
+      {/* 悬停详细工具提示 */}
+      {isHovered && milestone.description && milestone.description.length > 24 && (
         <g className="milestone-tooltip">
           <rect
-            x={milestone.x - 100}
-            y={milestone.y - 80}
-            width="200"
+            x={milestone.x - 120}
+            y={milestone.y - 60}
+            width="240"
             height="30"
             rx="15"
             ry="15"
-            fill="rgba(0, 0, 0, 0.8)"
+            fill="rgba(0, 0, 0, 0.9)"
             className="tooltip-bg"
           />
           <text
             x={milestone.x}
-            y={milestone.y - 60}
+            y={milestone.y - 40}
             textAnchor="middle"
             fill="white"
             fontSize="12"
