@@ -11,62 +11,90 @@
     display: block;
     
     .s-timeline-path {
-      animation: drawPath 2s ease-in-out;
+      animation: drawPath 3s ease-in-out;
+      stroke-width: 3;
+      opacity: 0.8;
     }
     
     .milestone-node {
-      .milestone-circle {
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      .connection-line {
+        transition: stroke-width 0.2s ease;
         
         &:hover {
-          transform: scale(1.1);
-          filter: url(#glow);
-        }
-        
-        &.completed {
-          animation: pulse 2s infinite;
-        }
-        
-        &.pending {
-          opacity: 0.8;
+          stroke-width: 3;
         }
       }
       
-      .milestone-text {
+      .milestone-date {
+        font-family: var(--semi-font-family);
+        user-select: none;
+        pointer-events: none;
+        transition: all 0.2s ease;
+      }
+      
+      .milestone-circle {
+        // 移除会导致抖动的transform和scale
+        transition: filter 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        
+        &:hover {
+          // 只使用filter效果，避免抖动
+          filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+        }
+      }
+      
+      .milestone-center {
         pointer-events: none;
         user-select: none;
+      }
+      
+      .text-box {
+        transition: filter 0.2s ease;
         
-        .milestone-title {
-          font-family: var(--semi-font-family);
-          font-weight: 600;
-          transition: all 0.2s;
+        &:hover {
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+        }
+      }
+      
+      .milestone-title {
+        font-family: var(--semi-font-family);
+        font-weight: 500;
+        user-select: none;
+        pointer-events: none;
+      }
+      
+      .milestone-description {
+        font-family: var(--semi-font-family);
+        user-select: none;
+        pointer-events: none;
+        opacity: 0.8;
+      }
+      
+      .status-badge {
+        .status-bg {
+          transition: all 0.2s ease;
+          filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.1));
         }
         
-        .milestone-date {
+        text {
           font-family: var(--semi-font-family);
-          font-size: 12px;
-          opacity: 0.8;
-        }
-        
-        .milestone-description {
-          font-family: var(--semi-font-family);
-          font-size: 11px;
-          opacity: 0.7;
+          user-select: none;
+          pointer-events: none;
         }
       }
       
       .milestone-tooltip {
         pointer-events: none;
-        animation: fadeIn 0.2s ease-in-out;
+        user-select: none;
+        animation: fadeIn 0.3s ease-in-out;
         
-        rect {
-          fill: var(--semi-color-bg-0);
-          stroke: var(--semi-color-border);
-          filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1));
+        .tooltip-bg {
+          filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
         }
         
         text {
           font-family: var(--semi-font-family);
+          user-select: none;
+          pointer-events: none;
         }
       }
     }
@@ -128,15 +156,6 @@
     }
   }
   
-  @keyframes pulse {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.7;
-    }
-  }
-  
   @keyframes fadeIn {
     0% {
       opacity: 0;
@@ -151,24 +170,26 @@
   // 响应式设计
   @media (max-width: 768px) {
     .milestone-node {
-      .milestone-text {
-        .milestone-title {
-          font-size: 12px;
-        }
-        
-        .milestone-date {
-          font-size: 10px;
-        }
-        
-        .milestone-description {
-          font-size: 10px;
-        }
+      .milestone-date {
+        font-size: 14px;
+      }
+      
+      .milestone-title {
+        font-size: 12px;
+      }
+      
+      .milestone-description {
+        font-size: 10px;
+      }
+      
+      .status-badge text {
+        font-size: 10px;
       }
       
       .milestone-tooltip {
-        rect {
-          width: 140px;
-          height: 45px;
+        .tooltip-bg {
+          width: 180px;
+          height: 25px;
         }
         
         text {
@@ -182,35 +203,31 @@
   [theme-mode="dark"] & {
     background-color: var(--semi-color-bg-0);
     
-    .s-timeline-svg {
-      .milestone-node {
-        .milestone-circle {
-          stroke: var(--semi-color-bg-0);
+    .milestone-node {
+      .text-box {
+        fill: var(--semi-color-bg-1);
+        stroke-opacity: 0.8;
+      }
+      
+      .milestone-title {
+        fill: var(--semi-color-text-0);
+      }
+      
+      .milestone-date {
+        fill: var(--semi-color-text-0);
+      }
+      
+      .milestone-description {
+        fill: var(--semi-color-text-2);
+      }
+      
+      .milestone-tooltip {
+        .tooltip-bg {
+          fill: rgba(20, 20, 20, 0.9);
         }
         
-        .milestone-text {
-          .milestone-title {
-            fill: var(--semi-color-text-0);
-          }
-          
-          .milestone-date {
-            fill: var(--semi-color-text-2);
-          }
-          
-          .milestone-description {
-            fill: var(--semi-color-text-1);
-          }
-        }
-        
-        .milestone-tooltip {
-          rect {
-            fill: var(--semi-color-bg-1);
-            stroke: var(--semi-color-border);
-          }
-          
-          text {
-            fill: var(--semi-color-text-0);
-          }
+        text {
+          fill: var(--semi-color-text-0);
         }
       }
     }
@@ -238,6 +255,10 @@
       .milestone-tooltip {
         display: none;
       }
+      
+      .status-badge {
+        opacity: 0.8;
+      }
     }
     
     .s-timeline-path {
@@ -250,7 +271,7 @@
 .s-timeline-svg {
   // 提升渲染性能
   transform-origin: center;
-  will-change: transform;
+  will-change: auto; // 减少GPU使用，避免抖动
   
   // 确保文本清晰度
   text {
@@ -262,5 +283,11 @@
   // 确保路径平滑
   path {
     vector-effect: non-scaling-stroke;
+  }
+  
+  // 禁用用户选择和拖拽
+  * {
+    user-select: none;
+    -webkit-user-drag: none;
   }
 }

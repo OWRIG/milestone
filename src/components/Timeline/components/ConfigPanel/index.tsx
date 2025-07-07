@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Select, Slider, Switch, DatePicker } from '@douyinfe/semi-ui';
+import { Select, Slider, Switch, DatePicker, Button } from '@douyinfe/semi-ui';
 import { ColorPicker } from '../../../ColorPicker';
 import { bitable, FieldType } from '@lark-base-open/js-sdk';
 import { ConfigPanelProps, STimelineConfig } from '../../types';
+import { useTranslation } from 'react-i18next';
 import './style.scss';
 
 const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loading = false }) => {
+  const { t } = useTranslation();
   const [tableList, setTableList] = useState<any[]>([]);
   const [fieldList, setFieldList] = useState<any[]>([]);
   const [dateFields, setDateFields] = useState<any[]>([]);
   const [textFields, setTextFields] = useState<any[]>([]);
   const [statusFields, setStatusFields] = useState<any[]>([]);
   const [fieldLoading, setFieldLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // 获取表格列表
   useEffect(() => {
@@ -125,17 +128,52 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
     handleConfigChange('timeRange', newTimeRange);
   };
 
+  // 保存配置
+  const onSaveConfig = async () => {
+    if (!config.tableId || !config.dateField || !config.titleField) {
+      // 可以添加错误提示
+      console.warn('请完成必填配置项');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // 构建数据条件
+      const dataConditions = {
+        tableId: config.tableId,
+        fieldIds: [
+          config.dateField,
+          config.titleField,
+          config.descField,
+          config.statusField
+        ].filter(Boolean) // 过滤掉空值
+      };
+
+      // @ts-ignore - dashboard 对象在仪表盘环境中可用
+      await window.dashboard?.saveConfig({
+        customConfig: config,
+        dataConditions: [dataConditions],
+      });
+      
+      console.log('配置保存成功');
+    } catch (error) {
+      console.error('保存配置失败:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="config-panel">
       {/* 数据源选择 */}
       <div className="config-section">
-        <h4>数据源配置</h4>
+        <h4>{t('config.data.source')}</h4>
         <div className="config-item">
-          <label>选择表格</label>
+          <label>{t('table.select')}</label>
           <Select
             value={config.tableId}
             onChange={(value) => handleConfigChange('tableId', value)}
-            placeholder="请选择数据表"
+            placeholder={t('table.select.placeholder')}
             style={{ width: '100%' }}
             loading={loading}
           >
@@ -150,13 +188,13 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
       
       {/* 字段映射 */}
       <div className="config-section">
-        <h4>字段映射</h4>
+        <h4>{t('config.field.mapping')}</h4>
         <div className="config-item">
-          <label>日期字段 *</label>
+          <label>{t('field.date')} *</label>
           <Select
             value={config.dateField}
             onChange={(value) => handleConfigChange('dateField', value)}
-            placeholder="请选择日期字段"
+            placeholder={t('field.date.placeholder')}
             style={{ width: '100%' }}
             loading={fieldLoading}
             disabled={!config.tableId}
@@ -170,11 +208,11 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
         </div>
         
         <div className="config-item">
-          <label>标题字段 *</label>
+          <label>{t('field.title')} *</label>
           <Select
             value={config.titleField}
             onChange={(value) => handleConfigChange('titleField', value)}
-            placeholder="请选择标题字段"
+            placeholder={t('field.title.placeholder')}
             style={{ width: '100%' }}
             loading={fieldLoading}
             disabled={!config.tableId}
@@ -188,11 +226,11 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
         </div>
         
         <div className="config-item">
-          <label>描述字段</label>
+          <label>{t('field.description')}</label>
           <Select
             value={config.descField}
             onChange={(value) => handleConfigChange('descField', value)}
-            placeholder="请选择描述字段（可选）"
+            placeholder={t('field.description.placeholder')}
             style={{ width: '100%' }}
             loading={fieldLoading}
             disabled={!config.tableId}
@@ -206,11 +244,11 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
         </div>
         
         <div className="config-item">
-          <label>状态字段</label>
+          <label>{t('field.status')}</label>
           <Select
             value={config.statusField}
             onChange={(value) => handleConfigChange('statusField', value)}
-            placeholder="请选择状态字段（可选）"
+            placeholder={t('field.status.placeholder')}
             style={{ width: '100%' }}
             loading={fieldLoading}
             disabled={!config.tableId}
@@ -226,25 +264,25 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
       
       {/* 时间范围配置 */}
       <div className="config-section">
-        <h4>时间范围</h4>
+        <h4>{t('config.time.range')}</h4>
         <div className="config-item">
-          <label>时间范围类型</label>
+          <label>{t('time.range.type')}</label>
           <Select
             value={config.timeRange?.autoRange || 'year'}
             onChange={(value) => handleTimeRangeChange('autoRange', value)}
             style={{ width: '100%' }}
           >
-            <Select.Option value="year">当年</Select.Option>
-            <Select.Option value="month">当月</Select.Option>
-            <Select.Option value="quarter">当季度</Select.Option>
-            <Select.Option value="custom">自定义</Select.Option>
+            <Select.Option value="year">{t('time.range.year')}</Select.Option>
+            <Select.Option value="month">{t('time.range.month')}</Select.Option>
+            <Select.Option value="quarter">{t('time.range.quarter')}</Select.Option>
+            <Select.Option value="custom">{t('time.range.custom')}</Select.Option>
           </Select>
         </div>
         
         {config.timeRange?.autoRange === 'custom' && (
           <>
             <div className="config-item">
-              <label>开始日期</label>
+              <label>{t('time.range.start')}</label>
               <DatePicker
                 value={config.timeRange?.startDate}
                 onChange={(date) => handleTimeRangeChange('startDate', date)}
@@ -253,7 +291,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
             </div>
             
             <div className="config-item">
-              <label>结束日期</label>
+              <label>{t('time.range.end')}</label>
               <DatePicker
                 value={config.timeRange?.endDate}
                 onChange={(date) => handleTimeRangeChange('endDate', date)}
@@ -266,9 +304,9 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
       
       {/* 样式配置 */}
       <div className="config-section">
-        <h4>样式配置</h4>
+        <h4>{t('config.style')}</h4>
         <div className="config-item">
-          <label>节点颜色</label>
+          <label>{t('style.node.color')}</label>
           <ColorPicker
             value={config.nodeColor}
             onChange={(value) => handleConfigChange('nodeColor', value)}
@@ -276,7 +314,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
         </div>
         
         <div className="config-item">
-          <label>连接线颜色</label>
+          <label>{t('style.line.color')}</label>
           <ColorPicker
             value={config.lineColor}
             onChange={(value) => handleConfigChange('lineColor', value)}
@@ -284,7 +322,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
         </div>
         
         <div className="config-item">
-          <label>已完成颜色</label>
+          <label>{t('style.completed.color')}</label>
           <ColorPicker
             value={config.completedColor}
             onChange={(value) => handleConfigChange('completedColor', value)}
@@ -294,9 +332,9 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
       
       {/* 布局配置 */}
       <div className="config-section">
-        <h4>布局配置</h4>
+        <h4>{t('config.layout')}</h4>
         <div className="config-item">
-          <label>曲线张力: {config.curveTension.toFixed(1)}</label>
+          <label>{t('layout.curve.tension')}: {config.curveTension.toFixed(1)}</label>
           <Slider
             min={0.1}
             max={1}
@@ -308,7 +346,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
         </div>
         
         <div className="config-item">
-          <label>节点大小: {config.nodeSize}px</label>
+          <label>{t('layout.node.size')}: {config.nodeSize}px</label>
           <Slider
             min={8}
             max={32}
@@ -320,7 +358,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
         </div>
         
         <div className="config-item">
-          <label>最小间距: {config.minNodeSpacing}px</label>
+          <label>{t('layout.min.spacing')}: {config.minNodeSpacing}px</label>
           <Slider
             min={20}
             max={80}
@@ -332,7 +370,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
         </div>
         
         <div className="config-item switch-item">
-          <label>显示描述</label>
+          <label>{t('layout.show.description')}</label>
           <Switch
             checked={config.showDescription}
             onChange={(value) => handleConfigChange('showDescription', value)}
@@ -340,12 +378,26 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
         </div>
         
         <div className="config-item switch-item">
-          <label>自适应布局</label>
+          <label>{t('layout.adaptive')}</label>
           <Switch
             checked={config.adaptiveLayout}
             onChange={(value) => handleConfigChange('adaptiveLayout', value)}
           />
         </div>
+      </div>
+
+      {/* 保存按钮 */}
+      <div className="config-actions">
+        <Button
+          className="save-button"
+          theme="solid"
+          onClick={onSaveConfig}
+          loading={saving}
+          disabled={loading || !config.tableId || !config.dateField || !config.titleField}
+          block
+        >
+          {saving ? t('saving') : t('save.config')}
+        </Button>
       </div>
     </div>
   );
