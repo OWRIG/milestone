@@ -1,5 +1,14 @@
-import { bitable, FieldType } from '@lark-base-open/js-sdk';
+import { bitable, FieldType, dashboard } from '@lark-base-open/js-sdk';
 import { MilestoneData, STimelineConfig, DashboardMode } from '../types';
+
+// Dashboard API类型定义
+type IDataItem = {
+  value: string | number | null;
+  text: string | null;
+  groupKey?: string;
+};
+
+type IData = IDataItem[][];
 
 // 时间线数据管理器
 export class TimelineDataManager {
@@ -16,23 +25,17 @@ export class TimelineDataManager {
     try {
       const dataConditions = {
         tableId: this.config.tableId,
-        viewId: this.config.viewId, // 可选
-        fieldIds: [
-          this.config.dateField,
-          this.config.titleField,
-          this.config.descField,
-          this.config.statusField
-        ].filter(Boolean) // 过滤掉空值
+        dataRange: { type: 'ALL' as const },
+        groups: this.config.dateField ? [{ fieldId: this.config.dateField }] : [],
+        series: this.config.titleField ? [{ fieldId: this.config.titleField, rollup: 'COUNTA' as const }] : 'COUNTA' as const
       };
       
       const configToSave = {
-        dataConditions: [dataConditions], // 数据依赖声明
-        customConfig: this.config // 自定义配置
+        dataConditions,
+        customConfig: this.config
       };
       
-      // 注意：这里需要根据实际的 dashboard API 调整
-      // @ts-ignore - dashboard 对象在仪表盘环境中可用
-      return await window.dashboard?.saveConfig(configToSave) || false;
+      return await dashboard.saveConfig(configToSave) || false;
     } catch (error) {
       console.error('保存配置失败:', error);
       return false;
@@ -45,16 +48,19 @@ export class TimelineDataManager {
       let rawData: any[];
       
       // 检查是否在仪表盘环境中
-      // @ts-ignore - dashboard 对象在仪表盘环境中可用
-      if (typeof window.dashboard !== 'undefined') {
+      if (typeof dashboard !== 'undefined') {
         if (this.mode === DashboardMode.Config) {
-          // 配置模式：使用预览数据（无参数）
-          // @ts-ignore
-          rawData = await window.dashboard.getPreviewData();
+          // 配置模式：使用预览数据
+          const dataConditions = {
+            tableId: this.config.tableId,
+            dataRange: { type: 'ALL' as const },
+            groups: this.config.dateField ? [{ fieldId: this.config.dateField }] : [],
+            series: this.config.titleField ? [{ fieldId: this.config.titleField, rollup: 'COUNTA' as const }] : 'COUNTA' as const
+          };
+          rawData = await dashboard.getPreviewData(dataConditions);
         } else {
-          // 查看模式：使用完整数据（无参数）
-          // @ts-ignore
-          rawData = await window.dashboard.getData();
+          // 查看模式：使用完整数据
+          rawData = await dashboard.getData();
         }
         
         // 处理获取到的数据
@@ -71,29 +77,43 @@ export class TimelineDataManager {
   }
   
   // 处理从 Dashboard API 获取的数据
-  private processRawData(rawData: any[]): MilestoneData[] {
+  private processRawData(rawData: IData): MilestoneData[] {
     const milestones: MilestoneData[] = [];
     
     if (!Array.isArray(rawData)) {
       console.warn('Dashboard API 返回的数据格式不正确');
-      return [];
+      return this.getMockData();
     }
     
-    // Dashboard API 返回的数据格式需要根据实际情况调整
-    // 这里假设返回的是记录数组格式
-    rawData.forEach((record, index) => {
+    // Dashboard API 返回的是二维数组格式，需要转换为时间线数据
+    // 第一行是表头，后续行是数据
+    if (rawData.length <= 1) {
+      console.warn('Dashboard API 返回的数据为空');
+      return this.getMockData();
+    }
+    
+    const headers = rawData[0];
+    const dataRows = rawData.slice(1);
+    
+    dataRows.forEach((row, index) => {
       try {
-        const dateValue = record[this.config.dateField];
-        const titleValue = record[this.config.titleField];
+        // 根据配置的字段映射提取数据
+        const dateFieldIndex = headers.findIndex((h: IDataItem) => h.value === this.config.dateField);
+        const titleFieldIndex = headers.findIndex((h: IDataItem) => h.value === this.config.titleField);
+        const descFieldIndex = this.config.descField ? headers.findIndex((h: IDataItem) => h.value === this.config.descField) : -1;
+        const statusFieldIndex = this.config.statusField ? headers.findIndex((h: IDataItem) => h.value === this.config.statusField) : -1;
         
-        if (dateValue && titleValue) {
+        if (dateFieldIndex >= 0 && titleFieldIndex >= 0 && row[dateFieldIndex] && row[titleFieldIndex]) {
+          const dateValue = row[dateFieldIndex].value;
+          const titleValue = row[titleFieldIndex].value;
+          
           milestones.push({
-            id: record.recordId || `milestone_${index}`,
-            date: new Date(dateValue),
+            id: `milestone_${index}`,
+            date: new Date(dateValue as string),
             title: String(titleValue),
-            description: this.config.descField ? String(record[this.config.descField] || '') : undefined,
-            status: this.config.statusField ? record[this.config.statusField] as any : 'pending',
-            completed: this.config.statusField ? record[this.config.statusField] === 'completed' : false,
+            description: descFieldIndex >= 0 && row[descFieldIndex] ? String(row[descFieldIndex].value || '') : undefined,
+            status: statusFieldIndex >= 0 && row[statusFieldIndex] ? row[statusFieldIndex].value as any : 'pending',
+            completed: statusFieldIndex >= 0 && row[statusFieldIndex] ? row[statusFieldIndex].value === 'completed' : false,
             x: 0,
             y: 0
           });
@@ -102,6 +122,11 @@ export class TimelineDataManager {
         console.warn(`处理记录 ${index} 时出错:`, error);
       }
     });
+    
+    // 如果没有获取到有效数据，返回模拟数据
+    if (milestones.length === 0) {
+      return this.getMockData();
+    }
     
     // 按日期排序并应用时间过滤
     return this.applyTimeFilter(milestones.sort((a, b) => a.date.getTime() - b.date.getTime()));

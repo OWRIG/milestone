@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Select, Slider, Switch, DatePicker, Button } from '@douyinfe/semi-ui';
 import { ColorPicker } from '../../../ColorPicker';
-import { bitable, FieldType } from '@lark-base-open/js-sdk';
+import { bitable, FieldType, dashboard } from '@lark-base-open/js-sdk';
 import { ConfigPanelProps, STimelineConfig } from '../../types';
 import { useTranslation } from 'react-i18next';
 import './style.scss';
@@ -141,18 +141,14 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ config, onConfigChange, loadi
       // 构建数据条件
       const dataConditions = {
         tableId: config.tableId,
-        fieldIds: [
-          config.dateField,
-          config.titleField,
-          config.descField,
-          config.statusField
-        ].filter(Boolean) // 过滤掉空值
+        dataRange: { type: 'ALL' as const },
+        groups: config.dateField ? [{ fieldId: config.dateField }] : [],
+        series: config.titleField ? [{ fieldId: config.titleField, rollup: 'COUNTA' as const }] : 'COUNTA' as const
       };
 
-      // @ts-ignore - dashboard 对象在仪表盘环境中可用
-      await window.dashboard?.saveConfig({
+      await dashboard.saveConfig({
         customConfig: config,
-        dataConditions: [dataConditions],
+        dataConditions,
       });
       
       console.log('配置保存成功');

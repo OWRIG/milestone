@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { bitable } from '@lark-base-open/js-sdk';
-import { DashboardState, DashboardMode, STimelineConfig, MilestoneData, ContainerSize, STimelineProps } from './types';
+import { bitable, dashboard } from '@lark-base-open/js-sdk';
+import { DashboardState, DashboardMode, STimelineConfig, STimelineProps } from './types';
 import { STimelineAlgorithm } from './utils/sAlgorithm';
 import { TimelineDataManager } from './utils/dataProcessor';
 import ConfigPanel from './components/ConfigPanel';
@@ -23,6 +23,7 @@ const TimelineDashboard: React.FC<STimelineProps> = ({
   
   const algorithmRef = useRef<STimelineAlgorithm>(new STimelineAlgorithm(containerSize));
   const dataManagerRef = useRef<TimelineDataManager>(new TimelineDataManager(state.config, state.mode));
+  const eventListenersRef = useRef<{[key: string]: () => void}>({});
   
   // 获取默认配置
   function getDefaultConfig(): STimelineConfig {
@@ -52,7 +53,7 @@ const TimelineDashboard: React.FC<STimelineProps> = ({
   // 检测运行模式
   const detectMode = useCallback(async (): Promise<DashboardMode> => {
     try {
-      const env = await bitable.bridge.getEnv();
+      await bitable.bridge.getEnv();
       const urlParams = new URLSearchParams(window.location.search);
       const mode = urlParams.get('mode');
       
@@ -74,8 +75,7 @@ const TimelineDashboard: React.FC<STimelineProps> = ({
       setState(prev => ({ ...prev, loading: true, error: null }));
       
       // 尝试加载已保存的配置
-      // @ts-ignore - dashboard 对象在仪表盘环境中可用
-      const savedConfig = await window.dashboard?.getConfig?.();
+      const savedConfig = await dashboard.getConfig();
       if (savedConfig?.customConfig) {
         const newConfig = { ...getDefaultConfig(), ...savedConfig.customConfig };
         setState(prev => ({ ...prev, config: newConfig }));
@@ -83,7 +83,7 @@ const TimelineDashboard: React.FC<STimelineProps> = ({
         onConfigChange?.(newConfig);
       }
       
-      // 加载数据
+      // 使用DataManager加载数据
       const data = await dataManagerRef.current.loadTimelineData();
       const processedData = algorithmRef.current.calculateSPath(data, state.config.curveTension);
       setState(prev => ({ ...prev, data: processedData }));
@@ -95,7 +95,7 @@ const TimelineDashboard: React.FC<STimelineProps> = ({
     } finally {
       setState(prev => ({ ...prev, loading: false }));
     }
-  }, [state.config.curveTension, onConfigChange]);
+  }, [state.config.curveTension, state.mode, onConfigChange]);
   
   // 加载模拟数据
   const loadMockData = useCallback(async () => {
@@ -114,6 +114,7 @@ const TimelineDashboard: React.FC<STimelineProps> = ({
     if (state.mode === DashboardMode.Config) {
       try {
         setState(prev => ({ ...prev, loading: true }));
+        // 使用DataManager加载数据
         const data = await dataManagerRef.current.loadTimelineData();
         const processedData = algorithmRef.current.calculateSPath(data, newConfig.curveTension);
         setState(prev => ({ ...prev, data: processedData }));
@@ -139,6 +140,44 @@ const TimelineDashboard: React.FC<STimelineProps> = ({
     }
   }, [onSave]);
   
+  // 设置事件监听器
+  const setupEventListeners = useCallback(() => {
+    // 清理旧的监听器
+    Object.values(eventListenersRef.current).forEach(cleanup => cleanup());
+    eventListenersRef.current = {};
+    
+    // 监听数据变更
+    const onDataChangeCleanup = dashboard.onDataChange(async () => {
+      try {
+        // 使用DataManager处理数据
+        const timelineData = await dataManagerRef.current.loadTimelineData();
+        const processedData = algorithmRef.current.calculateSPath(timelineData, state.config.curveTension);
+        setState(prev => ({ ...prev, data: processedData }));
+      } catch (error) {
+        console.error('数据变更处理失败:', error);
+      }
+    });
+    
+    // 监听配置变更
+    const onConfigChangeCleanup = dashboard.onConfigChange(({ data: config }) => {
+      try {
+        if (config?.customConfig) {
+          const newConfig = { ...getDefaultConfig(), ...config.customConfig };
+          setState(prev => ({ ...prev, config: newConfig }));
+          dataManagerRef.current.updateConfig(newConfig);
+          onConfigChange?.(newConfig);
+        }
+      } catch (error) {
+        console.error('配置变更处理失败:', error);
+      }
+    });
+    
+    eventListenersRef.current = {
+      onDataChange: onDataChangeCleanup,
+      onConfigChange: onConfigChangeCleanup
+    };
+  }, [state.config.curveTension, onConfigChange]);
+  
   // 初始化
   useEffect(() => {
     const initialize = async () => {
@@ -146,6 +185,9 @@ const TimelineDashboard: React.FC<STimelineProps> = ({
         const mode = await detectMode();
         setState(prev => ({ ...prev, mode }));
         dataManagerRef.current.updateMode(mode);
+        
+        // 设置事件监听器
+        setupEventListeners();
         
         if (mode === DashboardMode.View || mode === DashboardMode.FullScreen) {
           await loadSavedConfigAndData();
@@ -160,7 +202,12 @@ const TimelineDashboard: React.FC<STimelineProps> = ({
     };
     
     initialize();
-  }, [detectMode, loadSavedConfigAndData, loadMockData]);
+    
+    // 清理函数
+    return () => {
+      Object.values(eventListenersRef.current).forEach(cleanup => cleanup());
+    };
+  }, [detectMode, loadSavedConfigAndData, loadMockData, setupEventListeners]);
   
   // 容器尺寸变化时更新算法
   useEffect(() => {
@@ -170,6 +217,13 @@ const TimelineDashboard: React.FC<STimelineProps> = ({
       setState(prev => ({ ...prev, data: processedData }));
     }
   }, [containerSize, state.config.curveTension, state.data]);
+  
+  // 渲染完成通知
+  useEffect(() => {
+    if (state.data.length > 0 && !state.loading) {
+      dashboard.setRendered();
+    }
+  }, [state.data, state.loading]);
   
   // 渲染错误状态
   if (state.error) {
@@ -199,17 +253,15 @@ const TimelineDashboard: React.FC<STimelineProps> = ({
               onConfigChange={handleConfigChange}
               loading={state.loading}
             />
-            {onSave && (
-              <div className="config-actions">
-                <button 
-                  className="save-button"
-                  onClick={handleSave}
-                  disabled={state.loading || !state.config.tableId}
-                >
-                  {state.loading ? '保存中...' : '保存配置'}
-                </button>
-              </div>
-            )}
+            <div className="config-actions">
+              <button 
+                className="save-button"
+                onClick={handleSave}
+                disabled={state.loading || !state.config.tableId}
+              >
+                {state.loading ? '保存中...' : '保存配置'}
+              </button>
+            </div>
           </div>
           <div className="timeline-preview">
             <TimelineRenderer 
