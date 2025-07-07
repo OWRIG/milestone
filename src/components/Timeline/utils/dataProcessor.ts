@@ -58,10 +58,14 @@ export class TimelineDataManager {
             groups: this.config.dateField ? [{ fieldId: this.config.dateField }] : [],
             series: this.config.titleField ? [{ fieldId: this.config.titleField, rollup: 'COUNTA' }] : 'COUNTA'
           } as any;
+          console.log('获取预览数据，条件:', dataConditions);
           rawData = await dashboard.getPreviewData(dataConditions);
+          console.log('预览数据结果:', rawData);
         } else {
           // 查看模式：使用完整数据
+          console.log('获取完整数据');
           rawData = await dashboard.getData();
+          console.log('完整数据结果:', rawData);
         }
         
         // 处理获取到的数据

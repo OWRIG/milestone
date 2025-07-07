@@ -91,6 +91,7 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
           try {
             data = await dataManager.loadTimelineData();
           } catch (error) {
+            console.warn('配置模式数据加载失败，使用 mock 数据:', error);
             const mockDataManager = new TimelineDataManager(configToUse, modeToUse);
             data = (mockDataManager as any).getMockData();
           }
@@ -121,42 +122,43 @@ const TimelineDashboard: React.FC<TimelineDashboardProps> = ({
     try {
       const dataManager = new TimelineDataManager(config, currentMode);
       const success = await dataManager.saveDataDependency();
-      if (success) {
-        // 保存后重新加载数据
-        await loadData(config, currentMode);
-      }
       return success;
     } catch (error) {
       setError('保存配置失败，请重试。');
       return false;
     }
-  }, [config, currentMode, loadData]);
+  }, [config, currentMode]);
 
   // 初始化和模式变化处理
   useEffect(() => {
     const initialize = async () => {
       try {
-        // 在展示模式下尝试加载已保存的配置
-        if (currentMode === DashboardMode.View || currentMode === DashboardMode.FullScreen) {
-          try {
-            const savedConfig = await dashboard.getConfig();
-            if (savedConfig?.customConfig) {
-              const newConfig = { ...getDefaultConfig(), ...savedConfig.customConfig };
-              setConfig(newConfig);
-              await loadData(newConfig, currentMode);
-              return;
-            }
-          } catch (error) {
-            // 配置加载失败，继续使用默认配置
-          }
-        }
+        setLoading(true);
         
-        // 使用默认配置加载数据
-        await loadData(getDefaultConfig(), currentMode);
+        // 在展示模式下，必须先获取已保存的配置
+        if (currentMode === DashboardMode.View || currentMode === DashboardMode.FullScreen) {
+          const savedConfig = await dashboard.getConfig();
+          if (savedConfig?.customConfig) {
+            // 使用获取到的配置来加载数据
+            const newConfig = { ...getDefaultConfig(), ...savedConfig.customConfig };
+            setConfig(newConfig);
+            await loadData(newConfig, currentMode);
+          } else {
+            // 没有保存的配置，可以显示错误或空状态
+            console.warn('在视图模式下未找到已保存的配置');
+            setError('未找到配置，请先在配置模式下保存。');
+            setMilestones([]);
+          }
+        } else {
+          // 创建/配置模式，使用当前的 config 状态（通常是默认值或正在修改的值）
+          await loadData(config, currentMode);
+        }
       } catch (error) {
-        setError('初始化失败，请刷新页面重试。');
-        const mockDataManager = new TimelineDataManager(getDefaultConfig(), currentMode);
-        setMilestones((mockDataManager as any).getMockData());
+        console.error('初始化失败:', error);
+        setError('插件初始化失败');
+        setMilestones([]); // 加载失败时不应显示模拟数据
+      } finally {
+        setLoading(false);
       }
     };
     
