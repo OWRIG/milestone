@@ -9,48 +9,6 @@ interface TimelineRendererProps {
 	onMilestoneClick?: (milestone: MilestoneData) => void;
 }
 
-// 新的辅助组件，用于处理文本换行
-const WrappedDescription: React.FC<{
-	text: string;
-	x: number;
-	y: number;
-	maxWidth: number;
-	fontSize: number;
-	className?: string;
-	fill?: string;
-}> = ({ text, x, y, maxWidth, fontSize, className, fill }) => {
-	const words = text.split(/\s+/);
-	const lines: string[] = [];
-	let currentLine = "";
-
-	words.forEach((word) => {
-		// 估算单词和当前行的宽度。注意：这是一个简化的估算。
-		// 在SVG中精确测量文本需要更复杂的方法，但这对于大多数等宽或比例字体是一个合理的近似。
-		const estimatedWordWidth = word.length * fontSize * 0.6;
-		const estimatedLineWidth = currentLine.length * fontSize * 0.6;
-
-		if (estimatedLineWidth + estimatedWordWidth > maxWidth && currentLine) {
-			lines.push(currentLine);
-			currentLine = word;
-		} else {
-			currentLine += (currentLine ? " " : "") + word;
-		}
-	});
-	if (currentLine) {
-		lines.push(currentLine);
-	}
-
-	return (
-		<text x={x} y={y} textAnchor="middle" fontSize={fontSize} fill={fill} className={className}>
-			{lines.map((line, index) => (
-				<tspan key={index} x={x} dy={index === 0 ? 0 : "1.2em"}>
-					{line}
-				</tspan>
-			))}
-		</text>
-	);
-};
-
 const TimelineRenderer: React.FC<TimelineRendererProps> = ({ milestones, config, containerSize, onMilestoneClick }) => {
 	// 自适应 S 型横向布局计算
 	const processedMilestones = useMemo(() => {
@@ -264,17 +222,18 @@ const TimelineRenderer: React.FC<TimelineRendererProps> = ({ milestones, config,
 								{milestone.title}
 							</text>
 
-							{/* 描述 - 使用新的换行组件 */}
+							{/* 描述 - 使用 foreignObject 实现自动换行 */}
 							{config.showDescription && milestone.description && (
-								<WrappedDescription
-									text={milestone.description}
-									x={milestone.x}
-									y={milestone.y + config.nodeSize + 40} // 调整初始Y坐标为标题留出空间
-									maxWidth={config.minNodeSpacing ? config.minNodeSpacing * 0.9 : 150} // 限制最大宽度
-									fontSize={Math.max(9, Math.min(12, containerSize.width / 120))}
-									fill="var(--semi-color-text-2)"
-									className="milestone-description"
-								/>
+								<foreignObject
+									x={milestone.x - (config.minNodeSpacing || 150) / 2}
+									y={milestone.y + config.nodeSize + 25}
+									width={config.minNodeSpacing || 150}
+									height={100} // 提供足够的高度让文本换行
+								>
+									<div className="milestone-description-wrapper">
+										<p className="milestone-description">{milestone.description}</p>
+									</div>
+								</foreignObject>
 							)}
 						</g>
 					);
