@@ -52,8 +52,8 @@ export interface MilestoneData {
 	status: string; // 允许任意状态文本
 	completed: boolean;
 	// Position coordinates (added by algorithm)
-	x: number;
-	y: number;
+	x?: number;
+	y?: number;
 }
 
 export interface DashboardState {

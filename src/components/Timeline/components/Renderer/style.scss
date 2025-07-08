@@ -30,6 +30,10 @@
       .milestone-description {
         font-family: var(--semi-font-family);
         user-select: none;
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--semi-color-text-2);
+        text-align: center;
       }
       
       .milestone-title {

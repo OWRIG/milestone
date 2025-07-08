@@ -34,8 +34,8 @@ const TimelineRenderer: React.FC<TimelineRendererProps> = ({ milestones, config,
 		const nodesPerRow = Math.max(1, Math.floor(availableWidth / actualSpacing));
 
 		// 根据容器高度动态调整行高
-		const minRowHeight = 120;
-		const maxRowHeight = 200;
+		const minRowHeight = 180; // 已增加
+		const maxRowHeight = 260; // 已增加
 		const totalRows = Math.ceil(milestones.length / nodesPerRow);
 		const availableHeight = containerHeight - 240; // 留出上下边距
 		const idealRowHeight =
@@ -89,6 +89,7 @@ const TimelineRenderer: React.FC<TimelineRendererProps> = ({ milestones, config,
 				const prevMilestone = processedMilestones[index - 1];
 
 				// 如果是同一行，直接连接
+
 				if (Math.abs(milestone.y - prevMilestone.y) < 10) {
 					pathParts.push(`L ${milestone.x} ${milestone.y}`);
 				} else {
