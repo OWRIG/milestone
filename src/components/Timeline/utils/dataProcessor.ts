@@ -89,7 +89,7 @@ export class TimelineDataManager {
 					title: titleValue,
 					description,
 					status,
-					completed: status.toLowerCase() === "completed" || status === "已完成",
+					completed: status === "已完成", // 核心修改点
 					x: 0,
 					y: 0,
 				});
